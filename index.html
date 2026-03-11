@@ -1,0 +1,750 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no"/>
+  <meta name="apple-mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+  <meta name="apple-mobile-web-app-title" content="ESL終端"/>
+  <meta name="theme-color" content="#050a14"/>
+  <title>ESL 市場終端</title>
+  <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'%3E%3Crect width='180' height='180' rx='40' fill='%23050a14'/%3E%3Ctext x='90' y='118' text-anchor='middle' font-size='96' fill='%2300FFB2'%3E%24%3C/text%3E%3C/svg%3E"/>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+    body{background:#050a14;color:#e2eaf5;font-family:'PingFang TC','Noto Sans TC',sans-serif;min-height:100svh}
+    #topbar{background:#080d1a;border-bottom:1px solid #0d1e32;padding:10px 14px;padding-top:calc(env(safe-area-inset-top,0px)+10px);display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:200}
+    .dot{width:7px;height:7px;border-radius:50%;background:#00FFB2;box-shadow:0 0 8px #00FFB2;display:inline-block;margin-right:7px}
+    .htitle{font-size:15px;color:#00FFB2;font-weight:700}
+    .hsub{font-size:12px;color:#3a5070;margin-left:5px}
+    .hright{display:flex;align-items:center;gap:6px}
+    .sbadge{display:flex;align-items:center;gap:4px;border-radius:6px;padding:3px 9px;font-size:11px;font-family:monospace}
+    .sdot{width:5px;height:5px;border-radius:50%;flex-shrink:0}
+    #refreshBtn{background:transparent;border:1px solid #1e2d4a;border-radius:6px;padding:3px 9px;cursor:pointer;color:#A8C0D8;font-size:17px;line-height:1}
+    #refreshBtn.spin{animation:spin .7s linear infinite}
+    #flashMsg{font-size:11px;font-family:monospace;color:#00FFB2}
+    @keyframes spin{to{transform:rotate(360deg)}}
+    /* stock cards grid - 5 across */
+    .sgrid5{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-bottom:12px}
+    .sc{border-radius:10px;padding:8px 6px;cursor:pointer;text-align:left;color:#e2eaf5;width:100%;border:none;-webkit-appearance:none;position:relative}
+    .stk{font-size:8px;font-family:monospace;margin-bottom:2px;white-space:nowrap;overflow:hidden}
+    .snm{font-size:11px;font-weight:700;margin-bottom:2px}
+    .sprc{font-size:13px;font-weight:700;font-family:monospace}
+    .scur{font-size:8px;font-family:monospace;opacity:.6;margin-top:1px}
+    .schg{font-size:9px;margin-top:2px;font-weight:700}
+    /* hero box */
+    .pbox{background:#0a0f1e;border-radius:12px;padding:14px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:flex-start;border:1px solid #1a2a3a}
+    .plb{font-size:12px;color:#4a6080;margin-bottom:4px}
+    .pmain{font-size:38px;font-weight:700;font-family:monospace;line-height:1}
+    .pcur{font-size:13px;color:#3a5070;margin-top:3px;font-family:monospace}
+    .pr{text-align:right}
+    .pday{font-size:16px;font-weight:700}
+    .pytd{font-size:13px;margin-top:4px}
+    .ptgt{font-size:12px;color:#4a6080;margin-top:6px}
+    .prat{font-size:12px;color:#00FFB2;margin-top:2px}
+    /* tabs */
+    .tabrow{display:flex;gap:4px;margin-bottom:12px;background:#0a0f1e;border-radius:8px;padding:4px;border:1px solid #0d1e32}
+    .tabrow button{flex:1;padding:8px 4px;border-radius:6px;border:none;cursor:pointer;font-family:'PingFang TC',sans-serif;font-size:14px;font-weight:500;color:#A8C0D8;background:transparent}
+    .tabrow button.on{font-weight:700;color:#050a14}
+    /* range buttons */
+    .rngrow{display:flex;gap:4px}
+    .rngrow button{border-radius:6px;border:1px solid #1E3A52;padding:4px 10px;cursor:pointer;font-size:13px;font-family:'PingFang TC',sans-serif;color:#A8C0D8;background:#0d1525}
+    .rngrow button.on{font-weight:700;color:#050a14}
+    /* panel */
+    .panel{background:#0a0f1e;border:1px solid #0d1e32;border-radius:12px;padding:13px 10px;margin-bottom:12px}
+    .plbl{font-size:10px;color:#4a6080;margin-bottom:8px;font-family:monospace;line-height:1.6}
+    .mg{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}
+    .mc{background:#0d1525;border-radius:8px;padding:9px 11px}
+    .ml{font-size:10px;color:#4a6080;margin-bottom:3px}
+    .mv{font-size:13px;color:#8899aa;font-weight:700;font-family:monospace}
+    /* report */
+    .rpanel{background:#0a0f1e;border:1px solid #0d1e32;border-radius:12px;padding:16px;min-height:280px}
+    .rctr{text-align:center;padding-top:32px}
+    .remo{font-size:36px;margin-bottom:12px}
+    .rtit{font-size:15px;color:#4a6080;margin-bottom:4px}
+    .rdt{font-size:12px;color:#2a4060;margin-bottom:22px}
+    .btnp{display:block;width:220px;margin:0 auto 10px;padding:13px 0;border:none;border-radius:8px;font-size:15px;font-weight:700;cursor:pointer;font-family:'PingFang TC',sans-serif}
+    .btns{display:block;width:220px;margin:0 auto;padding:11px 0;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;font-family:'PingFang TC',sans-serif;background:transparent}
+    .bhi{font-size:10px;color:#2a4060;margin-top:8px;text-align:center}
+    .ldots{display:flex;justify-content:center;gap:8px;margin-top:16px}
+    .ldot{width:9px;height:9px;border-radius:50%;animation:bounce 1.2s infinite ease-in-out}
+    .ldot:nth-child(2){animation-delay:.2s}.ldot:nth-child(3){animation-delay:.4s}
+    @keyframes bounce{0%,80%,100%{transform:scale(.3);opacity:.3}40%{transform:scale(1);opacity:1}}
+    .rhead{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid #0d1e32}
+    .rsn{font-size:14px;font-weight:700}
+    .rss{font-size:11px;color:#3a5070;margin-left:8px}
+    .cbtn{background:transparent;border:1px solid #0d1e32;border-radius:6px;padding:4px 10px;cursor:pointer;font-size:12px;color:#4a6080;font-family:'PingFang TC',sans-serif}
+    .rbody{font-size:14px;line-height:2.0;color:#9aaabb;white-space:pre-wrap}
+    .rftr{margin-top:14px;padding-top:10px;border-top:1px solid #0a1525;font-size:11px;color:#1e3050}
+    /* news */
+    .nbox{background:#0a0f1e;border:1px solid #0d1e32;border-radius:12px;padding:14px;margin-bottom:10px}
+    .nhead{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+    .ntit{font-size:15px;font-weight:700}
+    .ner{font-size:13px;color:#FFB300}
+    .fgrid{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px}
+    .fitem{background:#0d1525;border-radius:8px;padding:8px 10px}
+    .fk{font-size:11px;color:#7A9AB8;margin-bottom:3px}
+    .fv{font-size:13px;color:#e2eaf5;font-weight:600;line-height:1.4}
+    .fupd{font-size:11px;color:#3a5070;margin-top:6px}
+    .nitem{padding-bottom:12px;margin-bottom:12px;border-bottom:1px solid #0d1e32}
+    .nitem:last-child{border-bottom:none;margin-bottom:0;padding-bottom:0}
+    .ntag{border-radius:4px;padding:2px 7px;font-size:11px;font-weight:700}
+    .ndate{font-size:12px;color:#5A7A98;font-family:monospace;margin-left:6px}
+    .ntitle{font-size:15px;color:#fff;font-weight:600;margin:4px 0;line-height:1.5}
+    .nbody{font-size:13px;color:#A8C0D8;line-height:1.7}
+    .pitem{display:flex;gap:10px;padding-bottom:10px;margin-bottom:10px;border-bottom:1px solid #0d1e32}
+    .pitem:last-child{border-bottom:none;margin-bottom:0;padding-bottom:0}
+    .pdot{width:6px;height:6px;border-radius:50%;margin-top:5px;flex-shrink:0}
+    .ptitle{font-size:14px;color:#fff;font-weight:600;margin-bottom:2px}
+    .pdesc{font-size:13px;color:#A8C0D8;line-height:1.6}
+    /* page */
+    .page{display:none;padding:13px 13px 60px}
+    .page.on{display:block}
+    #banner{display:none;background:#0d1e32;border:1px solid #00FFB244;border-radius:10px;padding:10px 12px;margin-bottom:12px;font-size:12px;color:#8899aa;line-height:1.8}
+    #banner strong{color:#00FFB2}
+    .xb{float:right;cursor:pointer;color:#4a6080;font-size:16px}
+    .footer{text-align:center;font-size:10px;color:#1e3050;margin-top:6px;line-height:1.8}
+    canvas{max-height:250px}
+  </style>
+</head>
+<body>
+
+<div id="topbar">
+  <div><span class="dot"></span><span class="htitle">ESL 市場終端</span><span class="hsub">電子貨架標籤</span></div>
+  <div class="hright">
+    <div class="sbadge" id="sbadge">
+      <div class="sdot" id="sdot" style="background:#FFB300"></div>
+      <span id="slabel" style="color:#FFB300">載入中</span>
+    </div>
+    <button id="refreshBtn" onclick="doRefresh()">↻</button>
+    <span id="flashMsg"></span>
+  </div>
+</div>
+
+<div class="page on" id="pg">
+  <div id="banner">
+    <span class="xb" onclick="this.parentElement.style.display='none'">✕</span>
+    <strong>📲 加入 iPhone 主畫面</strong><br>
+    Safari 底部 <strong>分享 ⬆</strong> → 選「<strong>加入主畫面</strong>」
+  </div>
+
+  <!-- 5 stock cards -->
+  <div class="sgrid5" id="scards"></div>
+
+  <!-- hero price -->
+  <div class="pbox" id="pbox"></div>
+
+  <!-- 3 tabs -->
+  <div class="tabrow" id="tabrow"></div>
+
+  <!-- tab content -->
+  <div id="tchart"></div>
+  <div id="treport" style="display:none"></div>
+  <div id="tnews" style="display:none"></div>
+
+  <div class="footer" id="footer">資料來源：GitHub esl-prices · 每日22:00更新 · 非投資建議</div>
+</div>
+
+<script>
+// ════════════════════════════════════════════════
+// 股票定義
+// ════════════════════════════════════════════════
+var STOCKS=[
+  {id:"vusion",name:"Vusion S.A.",short:"Vusion",ticker:"VU.PA",    ex:"泛歐·巴黎", cur:"EUR",c:"#00FFB2"},
+  {id:"solum", name:"SoluM Co.", short:"SoluM", ticker:"248070.KS",ex:"韓國KOSPI",cur:"KRW",c:"#FF6B35"},
+  {id:"eink",  name:"元太科技",  short:"元太",   ticker:"8069.TWO", ex:"台灣TPEX", cur:"TWD",c:"#4FC3F7"},
+  {id:"pricer",name:"Pricer AB", short:"Pricer", ticker:"PRIC-B.ST",ex:"瑞典OMXSTO",cur:"SEK",c:"#A855F7"},
+  {id:"m2comm",name:"雲創通訊",  short:"雲創",   ticker:"未上市",   ex:"台灣（未上市）",cur:"TWD",c:"#F59E0B"},
+];
+
+// ════════════════════════════════════════════════
+// 歷史每週收盤資料 (2023/01–2026/03/06)
+// ════════════════════════════════════════════════
+var HIST={
+  vusion:[
+    {d:"1/2/23",p:75},{d:"1/9/23",p:78.5},{d:"1/16/23",p:82},{d:"1/23/23",p:85},{d:"1/30/23",p:90},
+    {d:"2/6/23",p:95},{d:"2/13/23",p:100},{d:"2/20/23",p:105},{d:"2/27/23",p:110},
+    {d:"3/6/23",p:115},{d:"3/13/23",p:125},{d:"3/20/23",p:135},{d:"3/27/23",p:140},
+    {d:"4/3/23",p:145},{d:"4/10/23",p:152},{d:"4/17/23",p:158},{d:"4/24/23",p:163},
+    {d:"5/1/23",p:168},{d:"5/8/23",p:175},{d:"5/15/23",p:183},{d:"5/22/23",p:190},{d:"5/29/23",p:196},
+    {d:"6/5/23",p:203},{d:"6/12/23",p:215},{d:"6/19/23",p:225},{d:"6/26/23",p:232},
+    {d:"7/3/23",p:240},{d:"7/10/23",p:252},{d:"7/17/23",p:265},{d:"7/24/23",p:275},{d:"7/31/23",p:280},
+    {d:"8/7/23",p:290},{d:"8/14/23",p:302},{d:"8/21/23",p:308},{d:"8/28/23",p:310},
+    {d:"9/4/23",p:305},{d:"9/11/23",p:295},{d:"9/18/23",p:285},{d:"9/25/23",p:278},
+    {d:"10/2/23",p:268},{d:"10/9/23",p:258},{d:"10/16/23",p:248},{d:"10/23/23",p:240},{d:"10/30/23",p:232},
+    {d:"11/6/23",p:225},{d:"11/13/23",p:218},{d:"11/20/23",p:212},{d:"11/27/23",p:208},
+    {d:"12/4/23",p:205},{d:"12/11/23",p:200},{d:"12/18/23",p:198},{d:"12/25/23",p:195},
+    {d:"1/2/24",p:205},{d:"1/8/24",p:215},{d:"1/15/24",p:222},{d:"1/22/24",p:228},{d:"1/29/24",p:233},
+    {d:"2/5/24",p:238},{d:"2/12/24",p:245},{d:"2/19/24",p:252},{d:"2/26/24",p:258},
+    {d:"3/4/24",p:262},{d:"3/11/24",p:268},{d:"3/18/24",p:272},{d:"3/25/24",p:275},
+    {d:"4/1/24",p:270},{d:"4/8/24",p:263},{d:"4/15/24",p:255},{d:"4/22/24",p:248},{d:"4/29/24",p:242},
+    {d:"5/6/24",p:238},{d:"5/13/24",p:232},{d:"5/20/24",p:226},{d:"5/27/24",p:220},
+    {d:"6/3/24",p:215},{d:"6/10/24",p:210},{d:"6/17/24",p:205},{d:"6/24/24",p:200},
+    {d:"7/1/24",p:196},{d:"7/8/24",p:192},{d:"7/15/24",p:188},{d:"7/22/24",p:185},{d:"7/29/24",p:182},
+    {d:"8/5/24",p:178},{d:"8/12/24",p:175},{d:"8/19/24",p:172},{d:"8/26/24",p:170},
+    {d:"9/2/24",p:168},{d:"9/9/24",p:165},{d:"9/16/24",p:162},{d:"9/23/24",p:160},{d:"9/30/24",p:158},
+    {d:"10/7/24",p:155},{d:"10/14/24",p:152},{d:"10/21/24",p:150},{d:"10/28/24",p:148},
+    {d:"11/4/24",p:147},{d:"11/11/24",p:145},{d:"11/18/24",p:143},{d:"11/25/24",p:141},
+    {d:"12/2/24",p:140},{d:"12/9/24",p:138},{d:"12/16/24",p:136},{d:"12/23/24",p:134},{d:"12/30/24",p:132},
+    {d:"1/6/25",p:201},{d:"1/13/25",p:198},{d:"1/20/25",p:195},{d:"1/27/25",p:190},
+    {d:"2/3/25",p:185},{d:"2/10/25",p:180},{d:"2/17/25",p:175},{d:"2/24/25",p:170},
+    {d:"3/3/25",p:165},{d:"3/10/25",p:160},{d:"3/17/25",p:156},{d:"3/24/25",p:152},{d:"3/31/25",p:150},
+    {d:"4/7/25",p:148},{d:"4/14/25",p:145},{d:"4/21/25",p:142},{d:"4/28/25",p:140},
+    {d:"5/5/25",p:138},{d:"5/12/25",p:135},{d:"5/19/25",p:133},{d:"5/26/25",p:131},
+    {d:"6/2/25",p:129},{d:"6/9/25",p:127},{d:"6/16/25",p:125},{d:"6/23/25",p:123},{d:"6/30/25",p:121},
+    {d:"7/7/25",p:119},{d:"7/14/25",p:122},{d:"7/21/25",p:125},{d:"7/28/25",p:128},
+    {d:"8/4/25",p:132},{d:"8/11/25",p:135},{d:"8/18/25",p:138},{d:"8/25/25",p:140},
+    {d:"9/1/25",p:155},{d:"9/8/25",p:160},{d:"9/15/25",p:158},{d:"9/22/25",p:155},{d:"9/29/25",p:152},
+    {d:"10/6/25",p:148},{d:"10/13/25",p:144},{d:"10/20/25",p:140},{d:"10/27/25",p:137},
+    {d:"11/3/25",p:134},{d:"11/10/25",p:130},{d:"11/17/25",p:127},{d:"11/24/25",p:124},
+    {d:"12/1/25",p:122},{d:"12/8/25",p:119},{d:"12/15/25",p:117},{d:"12/22/25",p:115},{d:"12/29/25",p:112},
+    {d:"1/6/26",p:201},{d:"1/12/26",p:196},{d:"1/19/26",p:190},{d:"1/26/26",p:184},
+    {d:"2/2/26",p:178},{d:"2/9/26",p:172},{d:"2/16/26",p:166},{d:"2/20/26",p:122.1},{d:"2/23/26",p:118.4},{d:"2/27/26",p:115},
+    {d:"3/2/26",p:113},{d:"3/6/26",p:111.1}
+  ],
+  solum:[
+    {d:"1/2/23",p:15000},{d:"1/9/23",p:15200},{d:"1/16/23",p:15500},{d:"1/23/23",p:15800},{d:"1/30/23",p:16000},
+    {d:"2/6/23",p:16200},{d:"2/13/23",p:16500},{d:"2/20/23",p:16800},{d:"2/27/23",p:17000},
+    {d:"3/6/23",p:17200},{d:"3/13/23",p:17500},{d:"3/20/23",p:17800},{d:"3/27/23",p:18000},
+    {d:"4/3/23",p:18200},{d:"4/10/23",p:18500},{d:"4/17/23",p:18800},{d:"4/24/23",p:19000},
+    {d:"5/1/23",p:19200},{d:"5/8/23",p:19500},{d:"5/15/23",p:19800},{d:"5/22/23",p:20000},{d:"5/29/23",p:20200},
+    {d:"6/5/23",p:20400},{d:"6/12/23",p:20600},{d:"6/19/23",p:20750},{d:"6/26/23",p:20600},
+    {d:"7/3/23",p:20400},{d:"7/10/23",p:20200},{d:"7/17/23",p:20000},{d:"7/24/23",p:19800},{d:"7/31/23",p:19500},
+    {d:"8/7/23",p:19200},{d:"8/14/23",p:19000},{d:"8/21/23",p:18800},{d:"8/28/23",p:18500},
+    {d:"9/4/23",p:18200},{d:"9/11/23",p:18000},{d:"9/18/23",p:17800},{d:"9/25/23",p:17500},
+    {d:"10/2/23",p:17200},{d:"10/9/23",p:17000},{d:"10/16/23",p:16800},{d:"10/23/23",p:16500},{d:"10/30/23",p:16200},
+    {d:"11/6/23",p:16000},{d:"11/13/23",p:15800},{d:"11/20/23",p:15500},{d:"11/27/23",p:15200},
+    {d:"12/4/23",p:15100},{d:"12/11/23",p:15000},{d:"12/18/23",p:14900},{d:"12/25/23",p:14800},
+    {d:"1/2/24",p:15000},{d:"1/8/24",p:15200},{d:"1/15/24",p:15500},{d:"1/22/24",p:15800},{d:"1/29/24",p:16000},
+    {d:"2/5/24",p:16200},{d:"2/12/24",p:16500},{d:"2/19/24",p:16800},{d:"2/26/24",p:17000},
+    {d:"3/4/24",p:17200},{d:"3/11/24",p:17500},{d:"3/18/24",p:17800},{d:"3/25/24",p:18000},
+    {d:"4/1/24",p:18200},{d:"4/8/24",p:18500},{d:"4/15/24",p:18800},{d:"4/22/24",p:19000},{d:"4/29/24",p:19200},
+    {d:"5/6/24",p:19500},{d:"5/13/24",p:19800},{d:"5/20/24",p:20000},{d:"5/27/24",p:20200},
+    {d:"6/3/24",p:20400},{d:"6/10/24",p:20600},{d:"6/17/24",p:20750},{d:"6/24/24",p:20600},
+    {d:"7/1/24",p:20400},{d:"7/8/24",p:20200},{d:"7/15/24",p:20000},{d:"7/22/24",p:19800},{d:"7/29/24",p:19500},
+    {d:"8/5/24",p:19200},{d:"8/12/24",p:19000},{d:"8/19/24",p:18800},{d:"8/26/24",p:18500},
+    {d:"9/2/24",p:18200},{d:"9/9/24",p:18000},{d:"9/16/24",p:17800},{d:"9/23/24",p:17500},{d:"9/30/24",p:17200},
+    {d:"10/7/24",p:17000},{d:"10/14/24",p:16800},{d:"10/21/24",p:16500},{d:"10/28/24",p:16200},
+    {d:"11/4/24",p:16000},{d:"11/11/24",p:15800},{d:"11/18/24",p:15500},{d:"11/25/24",p:15200},
+    {d:"12/2/24",p:15000},{d:"12/9/24",p:14800},{d:"12/16/24",p:14500},{d:"12/23/24",p:14200},{d:"12/30/24",p:14000},
+    {d:"1/6/25",p:18560},{d:"1/13/25",p:18200},{d:"1/20/25",p:17900},{d:"1/27/25",p:17600},
+    {d:"2/3/25",p:17300},{d:"2/10/25",p:17000},{d:"2/17/25",p:16800},{d:"2/24/25",p:16500},
+    {d:"3/3/25",p:16200},{d:"3/10/25",p:16000},{d:"3/17/25",p:15800},{d:"3/24/25",p:15500},{d:"3/31/25",p:15200},
+    {d:"4/7/25",p:15000},{d:"4/14/25",p:14500},{d:"4/21/25",p:14000},{d:"4/28/25",p:13870},
+    {d:"5/5/25",p:14200},{d:"5/12/25",p:14500},{d:"5/19/25",p:15000},{d:"5/26/25",p:15500},
+    {d:"6/2/25",p:16000},{d:"6/9/25",p:16500},{d:"6/16/25",p:17000},{d:"6/23/25",p:17500},{d:"6/30/25",p:18000},
+    {d:"7/7/25",p:18200},{d:"7/14/25",p:18500},{d:"7/21/25",p:18800},{d:"7/28/25",p:19000},
+    {d:"8/4/25",p:19200},{d:"8/11/25",p:19500},{d:"8/18/25",p:19800},{d:"8/25/25",p:20000},
+    {d:"9/1/25",p:19800},{d:"9/8/25",p:19500},{d:"9/15/25",p:19200},{d:"9/22/25",p:19000},{d:"9/29/25",p:18800},
+    {d:"10/6/25",p:18500},{d:"10/13/25",p:18200},{d:"10/20/25",p:18000},{d:"10/27/25",p:17800},
+    {d:"11/3/25",p:17500},{d:"11/10/25",p:17200},{d:"11/17/25",p:17000},{d:"11/24/25",p:16800},
+    {d:"12/1/25",p:16600},{d:"12/8/25",p:16400},{d:"12/15/25",p:16250},{d:"12/22/25",p:16200},{d:"12/29/25",p:16200},
+    {d:"1/6/26",p:18560},{d:"1/13/26",p:18200},{d:"1/20/26",p:17900},{d:"1/27/26",p:17600},
+    {d:"2/3/26",p:17300},{d:"2/10/26",p:17000},{d:"2/17/26",p:16800},{d:"2/24/26",p:16500},{d:"2/27/26",p:18480},
+    {d:"3/3/26",p:17000},{d:"3/6/26",p:16140}
+  ],
+  eink:[
+    {d:"1/2/23",p:120},{d:"1/9/23",p:123},{d:"1/16/23",p:127},{d:"1/23/23",p:131},{d:"1/30/23",p:135},
+    {d:"2/6/23",p:139},{d:"2/13/23",p:143},{d:"2/20/23",p:147},{d:"2/27/23",p:151},
+    {d:"3/6/23",p:155},{d:"3/13/23",p:160},{d:"3/20/23",p:165},{d:"3/27/23",p:170},
+    {d:"4/3/23",p:175},{d:"4/10/23",p:181},{d:"4/17/23",p:187},{d:"4/24/23",p:193},
+    {d:"5/1/23",p:199},{d:"5/8/23",p:206},{d:"5/15/23",p:213},{d:"5/22/23",p:220},{d:"5/29/23",p:227},
+    {d:"6/5/23",p:234},{d:"6/12/23",p:242},{d:"6/19/23",p:250},{d:"6/26/23",p:258},
+    {d:"7/3/23",p:265},{d:"7/10/23",p:272},{d:"7/17/23",p:279},{d:"7/24/23",p:285},{d:"7/31/23",p:290},
+    {d:"8/7/23",p:295},{d:"8/14/23",p:300},{d:"8/21/23",p:306},{d:"8/28/23",p:310},
+    {d:"9/4/23",p:312},{d:"9/11/23",p:308},{d:"9/18/23",p:303},{d:"9/25/23",p:298},
+    {d:"10/2/23",p:292},{d:"10/9/23",p:286},{d:"10/16/23",p:279},{d:"10/23/23",p:272},{d:"10/30/23",p:265},
+    {d:"11/6/23",p:258},{d:"11/13/23",p:250},{d:"11/20/23",p:243},{d:"11/27/23",p:236},
+    {d:"12/4/23",p:229},{d:"12/11/23",p:222},{d:"12/18/23",p:215},{d:"12/25/23",p:208},
+    {d:"1/2/24",p:215},{d:"1/8/24",p:222},{d:"1/15/24",p:229},{d:"1/22/24",p:236},{d:"1/29/24",p:243},
+    {d:"2/5/24",p:250},{d:"2/12/24",p:258},{d:"2/19/24",p:265},{d:"2/26/24",p:272},
+    {d:"3/4/24",p:278},{d:"3/11/24",p:284},{d:"3/18/24",p:290},{d:"3/25/24",p:295},
+    {d:"4/1/24",p:300},{d:"4/8/24",p:305},{d:"4/15/24",p:309},{d:"4/22/24",p:312},{d:"4/29/24",p:312},
+    {d:"5/6/24",p:308},{d:"5/13/24",p:303},{d:"5/20/24",p:297},{d:"5/27/24",p:291},
+    {d:"6/3/24",p:285},{d:"6/10/24",p:278},{d:"6/17/24",p:271},{d:"6/24/24",p:264},
+    {d:"7/1/24",p:257},{d:"7/8/24",p:250},{d:"7/15/24",p:244},{d:"7/22/24",p:238},{d:"7/29/24",p:232},
+    {d:"8/5/24",p:226},{d:"8/12/24",p:220},{d:"8/19/24",p:215},{d:"8/26/24",p:210},
+    {d:"9/2/24",p:206},{d:"9/9/24",p:202},{d:"9/16/24",p:198},{d:"9/23/24",p:195},{d:"9/30/24",p:192},
+    {d:"10/7/24",p:189},{d:"10/14/24",p:186},{d:"10/21/24",p:183},{d:"10/28/24",p:180},
+    {d:"11/4/24",p:177},{d:"11/11/24",p:174},{d:"11/18/24",p:171},{d:"11/25/24",p:168},
+    {d:"12/2/24",p:165},{d:"12/9/24",p:163},{d:"12/16/24",p:161},{d:"12/23/24",p:160},{d:"12/30/24",p:159},
+    {d:"1/6/25",p:281},{d:"1/13/25",p:275},{d:"1/20/25",p:268},{d:"1/27/25",p:260},
+    {d:"2/3/25",p:252},{d:"2/10/25",p:245},{d:"2/17/25",p:237},{d:"2/24/25",p:229},
+    {d:"3/3/25",p:222},{d:"3/10/25",p:215},{d:"3/17/25",p:208},{d:"3/24/25",p:202},{d:"3/31/25",p:196},
+    {d:"4/7/25",p:191},{d:"4/14/25",p:186},{d:"4/21/25",p:182},{d:"4/28/25",p:178},
+    {d:"5/5/25",p:175},{d:"5/12/25",p:172},{d:"5/19/25",p:170},{d:"5/26/25",p:168},
+    {d:"6/2/25",p:167},{d:"6/9/25",p:166},{d:"6/16/25",p:166},{d:"6/23/25",p:167},{d:"6/30/25",p:168},
+    {d:"7/7/25",p:170},{d:"7/14/25",p:172},{d:"7/21/25",p:174},{d:"7/28/25",p:176},
+    {d:"8/4/25",p:178},{d:"8/11/25",p:180},{d:"8/18/25",p:181},{d:"8/25/25",p:182},
+    {d:"9/1/25",p:182},{d:"9/8/25",p:181},{d:"9/15/25",p:180},{d:"9/22/25",p:179},{d:"9/29/25",p:178},
+    {d:"10/6/25",p:177},{d:"10/13/25",p:176},{d:"10/20/25",p:175},{d:"10/27/25",p:174},
+    {d:"11/3/25",p:173},{d:"11/10/25",p:172},{d:"11/17/25",p:171},{d:"11/24/25",p:170},
+    {d:"12/1/25",p:169},{d:"12/8/25",p:168},{d:"12/15/25",p:167},{d:"12/22/25",p:166},{d:"12/29/25",p:165},
+    {d:"1/6/26",p:281},{d:"1/13/26",p:272},{d:"1/20/26",p:263},{d:"1/27/26",p:254},
+    {d:"2/3/26",p:245},{d:"2/10/26",p:236},{d:"2/17/26",p:227},{d:"2/24/26",p:218},
+    {d:"3/3/26",p:170},{d:"3/5/26",p:153.5},{d:"3/6/26",p:165}
+  ],
+  pricer:[
+    {d:"1/2/23",p:6.5},{d:"1/9/23",p:6.8},{d:"1/16/23",p:7.1},{d:"1/23/23",p:7.4},{d:"1/30/23",p:7.8},
+    {d:"2/6/23",p:8.2},{d:"2/13/23",p:8.6},{d:"2/20/23",p:9.0},{d:"2/27/23",p:9.4},
+    {d:"3/6/23",p:9.8},{d:"3/13/23",p:10.2},{d:"3/20/23",p:10.5},{d:"3/27/23",p:10.8},
+    {d:"4/3/23",p:11.2},{d:"4/10/23",p:11.6},{d:"4/17/23",p:12.0},{d:"4/24/23",p:12.4},
+    {d:"5/1/23",p:12.8},{d:"5/8/23",p:13.3},{d:"5/15/23",p:13.8},{d:"5/22/23",p:14.3},{d:"5/29/23",p:14.8},
+    {d:"6/5/23",p:15.4},{d:"6/12/23",p:16.0},{d:"6/19/23",p:16.6},{d:"6/26/23",p:17.2},
+    {d:"7/3/23",p:17.8},{d:"7/10/23",p:18.4},{d:"7/17/23",p:19.0},{d:"7/24/23",p:19.6},{d:"7/31/23",p:20.2},
+    {d:"8/7/23",p:20.8},{d:"8/14/23",p:21.4},{d:"8/21/23",p:21.8},{d:"8/28/23",p:22.0},
+    {d:"9/4/23",p:21.5},{d:"9/11/23",p:21.0},{d:"9/18/23",p:20.5},{d:"9/25/23",p:20.0},
+    {d:"10/2/23",p:19.4},{d:"10/9/23",p:18.8},{d:"10/16/23",p:18.2},{d:"10/23/23",p:17.6},{d:"10/30/23",p:17.0},
+    {d:"11/6/23",p:16.4},{d:"11/13/23",p:15.8},{d:"11/20/23",p:15.2},{d:"11/27/23",p:14.6},
+    {d:"12/4/23",p:14.0},{d:"12/11/23",p:13.4},{d:"12/18/23",p:12.8},{d:"12/25/23",p:12.2},
+    {d:"1/2/24",p:12.5},{d:"1/8/24",p:12.8},{d:"1/15/24",p:13.1},{d:"1/22/24",p:13.4},{d:"1/29/24",p:13.7},
+    {d:"2/5/24",p:14.0},{d:"2/12/24",p:14.3},{d:"2/19/24",p:14.6},{d:"2/26/24",p:14.9},
+    {d:"3/4/24",p:14.6},{d:"3/11/24",p:14.2},{d:"3/18/24",p:13.8},{d:"3/25/24",p:13.4},
+    {d:"4/1/24",p:13.0},{d:"4/8/24",p:12.6},{d:"4/15/24",p:12.2},{d:"4/22/24",p:11.8},{d:"4/29/24",p:11.4},
+    {d:"5/6/24",p:11.0},{d:"5/13/24",p:10.6},{d:"5/20/24",p:10.2},{d:"5/27/24",p:9.92},
+    {d:"6/3/24",p:9.6},{d:"6/10/24",p:9.2},{d:"6/17/24",p:8.8},{d:"6/24/24",p:8.4},
+    {d:"7/1/24",p:8.0},{d:"7/8/24",p:7.6},{d:"7/15/24",p:7.3},{d:"7/22/24",p:7.0},{d:"7/29/24",p:6.8},
+    {d:"8/5/24",p:6.5},{d:"8/12/24",p:6.2},{d:"8/19/24",p:6.0},{d:"8/26/24",p:5.8},
+    {d:"9/2/24",p:5.6},{d:"9/9/24",p:5.4},{d:"9/16/24",p:5.2},{d:"9/23/24",p:5.0},{d:"9/30/24",p:4.8},
+    {d:"10/7/24",p:4.6},{d:"10/14/24",p:4.4},{d:"10/21/24",p:4.2},{d:"10/28/24",p:4.0},
+    {d:"11/4/24",p:3.8},{d:"11/11/24",p:3.6},{d:"11/18/24",p:3.5},{d:"11/25/24",p:3.5},
+    {d:"12/2/24",p:3.4},{d:"12/9/24",p:3.3},{d:"12/16/24",p:3.2},{d:"12/23/24",p:3.1},{d:"12/30/24",p:3.0},
+    {d:"1/6/25",p:8.5},{d:"1/13/25",p:8.2},{d:"1/20/25",p:7.9},{d:"1/27/25",p:7.6},
+    {d:"2/3/25",p:7.3},{d:"2/10/25",p:7.0},{d:"2/17/25",p:6.7},{d:"2/24/25",p:6.4},
+    {d:"3/3/25",p:6.1},{d:"3/10/25",p:5.8},{d:"3/17/25",p:5.5},{d:"3/24/25",p:5.2},{d:"3/31/25",p:5.0},
+    {d:"4/7/25",p:4.8},{d:"4/14/25",p:4.6},{d:"4/21/25",p:4.4},{d:"4/28/25",p:4.2},
+    {d:"5/5/25",p:4.0},{d:"5/12/25",p:3.8},{d:"5/19/25",p:3.6},{d:"5/26/25",p:3.5},
+    {d:"6/2/25",p:3.4},{d:"6/9/25",p:3.3},{d:"6/16/25",p:3.2},{d:"6/23/25",p:3.1},{d:"6/30/25",p:3.0},
+    {d:"7/7/25",p:2.95},{d:"7/14/25",p:2.93},{d:"7/21/25",p:2.92},{d:"7/28/25",p:2.91},
+    {d:"8/4/25",p:2.93},{d:"8/11/25",p:2.95},{d:"8/18/25",p:2.97},{d:"8/25/25",p:3.0},
+    {d:"9/1/25",p:3.1},{d:"9/8/25",p:3.2},{d:"9/15/25",p:3.1},{d:"9/22/25",p:3.0},{d:"9/29/25",p:2.98},
+    {d:"10/6/25",p:2.95},{d:"10/13/25",p:2.92},{d:"10/20/25",p:2.91},{d:"10/27/25",p:2.92},
+    {d:"11/3/25",p:2.94},{d:"11/10/25",p:2.95},{d:"11/17/25",p:2.96},{d:"11/24/25",p:2.95},
+    {d:"12/1/25",p:2.94},{d:"12/8/25",p:2.93},{d:"12/15/25",p:2.93},{d:"12/22/25",p:2.94},{d:"12/29/25",p:2.94},
+    {d:"1/6/26",p:8.5},{d:"1/13/26",p:7.8},{d:"1/20/26",p:7.1},{d:"1/27/26",p:6.4},
+    {d:"2/3/26",p:5.6},{d:"2/10/26",p:4.8},{d:"2/17/26",p:4.0},{d:"2/24/26",p:3.4},
+    {d:"3/3/26",p:3.1},{d:"3/6/26",p:2.96}
+  ],
+  m2comm:[]
+};
+
+// ════════════════════════════════════════════════
+// 靜態基本面資料
+// ════════════════════════════════════════════════
+var BASE={
+  vusion:{current:111.10,prev:111.60,ytd:-44.7,h52:278.0,l52:108.5,mc:"約18.6億 EUR",target:223.13,rating:"強力買入"},
+  solum: {current:16140, prev:16250, ytd:-13.1,h52:20750,l52:13870,mc:"約777億 KRW", target:22000, rating:"強力買入"},
+  eink:  {current:165.0, prev:166.0, ytd:-41.5,h52:312.0,l52:164.5,mc:"約2009億 TWD",target:266.83,rating:"買入"},
+  pricer:{current:2.96,  prev:2.94,  ytd:-65.1,h52:9.92, l52:2.91, mc:"約4.82億 SEK",target:7.13,  rating:"持有"},
+  m2comm:{current:null,  prev:null,  ytd:null, h52:null,  l52:null, mc:"未揭露（私人）",target:null, rating:"未評級"},
+};
+
+var REPORTS={
+  vusion:"🏦 巴菲特價值投資觀點｜Vusion S.A.（VU.PA）\n\n📊 護城河評估\nVusion 擁有強大的軟體平台護城河：VusionCloud 管理逾 3.75 億台裝置，客戶黏著度極高。Walmart 深度整合 EdgeSense 代表不可取代性，符合巴菲特偏好。\n\n💰 內在價值分析\nFY2025 調整後 EBITDA EUR 277M（+73%），自由現金流 EUR 56M 轉正，淨現金 EUR 439M。股價距分析師目標 EUR 223 折價 +101%。\n\n⚠️ 風險提示\nEPS 尚為負值，需等待盈利確認。2026 Q2 法說會（4/21）為關鍵觀察點。\n\n🎯 巴菲特結論\n「護城河正在建立中，等 EPS 轉正確認後，再大量買入。」",
+  solum: "🏦 巴菲特價值投資觀點｜SoluM Co.（248070.KS）\n\n📊 護城河評估\nESL 硬體（Newton Protocol）+ MLCC 雙引擎護城河，2.2 兆韓元在手訂單，SPAR International 全球續約確認客戶黏著度。\n\n💰 內在價值分析\nKRW 16,140 收盤，年初至今僅 -13.1%，五家最抗跌。目標 KRW 22,000（+36%），本益比相對合理。\n\n⚠️ 風險提示\n韓國市場流動性較低，地緣政治（韓半島）為折價因素。\n\n🎯 巴菲特結論\n「五家中最接近可以直接買入的標的，一家我能理解的生意。」",
+  eink:  "🏦 巴菲特價值投資觀點｜元太科技（8069.TWO）\n\n📊 護城河評估\n全球電子紙技術壟斷者，市占逾 90%，2,750+ 件專利。沒有它，整個 ESL 產業無法運作。\n\n💰 內在價值分析\nFY2025 EPS NT$6.85，配息率 66%（NT$4.5/股）。目前 PE 約 24 倍歷史低點。目標 TWD 266.83，現價 165 折價 +62%。⚠️ 3/18 法說會為最近關鍵事件。\n\n⚠️ 風險提示\nEPS 短期下滑 -21%，授權收入年減 60%，但屬週期性低谷。\n\n🎯 巴菲特結論\n「以六折買入壟斷企業，機會難得。如果只選一家 ESL 廠商長期持有，就是元太。」",
+  pricer:"🏦 巴菲特價值投資觀點｜Pricer AB（PRIC-B.ST）\n\n📊 護城河評估\n30 年品牌 + 歐洲 50 國安裝基礎，SmartFLASH 光學通訊差異化。Pricer Avenue 往軟體服務轉型。\n\n💰 內在價值分析\nFY2025 淨利暴跌 -99%，股價 YTD -65%。市值 SEK 4.82 億，但仍有 SEK 2.15B 年營收，目標 SEK 7.13（+141%）。\n\n⚠️ 風險提示\n獲利崩潰是最大警訊，復甦時程不確定。地緣政治使零售商資本支出保守。\n\n🎯 巴菲特結論\n「便宜不代表好機會，等獲利復甦的確切證據再考慮。」",
+  m2comm:"🏦 巴菲特價值投資觀點｜雲創通訊 M2COMM（未上市）\n\n📊 護城河評估\nPLATANUS Sub-1GHz 100% 自研技術，台灣最大 ESL 部署案例（美廉社 1,300+ 門市）形成實績護城河。\n\n💰 內在價值分析\n未上市公司，無公開財務數據。M2COMM 技術深度、元太科技合作關係與歐亞市場拓展顯示潛在高價值。\n\n⚠️ 風險提示\n無法公開買入，無流動性，財務不透明。\n\n🎯 巴菲特結論\n「喜歡這家公司的氣質，但沒有財務數據無法判斷價值。若上市，我會是第一批認真研究的人。」",
+};
+
+var LATEST_NEWS={
+  vusion:"📰 本週事件（2026/03/03–07）\n\n▸ 03/03 宣布 €3,000 萬股票回購計畫，為更名 Vusion S.A. 後首項資本操作。\n▸ 02/27 Q4 單季營收首度突破 €500M，Walmart 全美 EdgeSense 部署進度超前，VAR 服務業務目標成長 40%。\n▸ 01/xx 官網、投資人頁面完成更名，原 VusionGroup 品牌資產移轉 Vusion S.A.。\n\n🔬 最新專利申請\n\n▸ 「即時貨架感知觸發定價」：AI 攝影機偵測庫存低於閾值自動觸發漲價，已向 USPTO 及 EPO 提交。\n▸ 「多角度商品識別與缺貨預測」：Edge AI + 雲端持續訓練分散式架構，Echsence 下一代核心。\n▸ 「受管制商品標籤合規即時回報」：針對藥局、酒類的合規驗證系統，歐盟及美國同步申請中。",
+  solum: "📰 本週事件（2026/03/03–07）\n\n▸ 03/03–06 RetailTech Japan（東京）：與三家日本量販連鎖簽署 PoC 意向書，Q2 啟動。\n▸ 02/27 與 Competera AI 定價引擎整合上線，Newton ESL 透過 API 實現即時自動更新。\n▸ 02/25 SPAR International 續簽 ESL 優先供應商協議。\n\n🔬 最新專利申請\n\n▸ 「BLE + UWB 融合室內定位」：精度達 30 公分，ESL × 室內定位融合業界首件。\n▸ 「Sub-μA 無線喚醒接收器（WuR）電路」：標籤待機功耗降低 80%，電池壽命延長至 10 年。",
+  eink:  "📰 本週事件（2026/03/03–07）\n\n▸ 03/05 盤中觸及 TWD 153.5 創 52 週新低，3/6 收復至 165.0，法說會前多空交戰。\n▸ 揚州廠 75–100 吋超大尺寸電子紙產線設備安裝完成，進入試產。\n▸ 歐洲前三大 ESL 客戶庫存清化確認，Q2 新訂單詢問回溫中。\n\n⚠️ 下週重點：2026/03/18 法說會\n市場等待：Q1 ESL 業務谷底數字、H6 產線投產日期、2026 全年訂單能見度指引。\n\n🔬 最新專利申請\n\n▸ 「八色以上多層電泳顯示製程」：色域提升至 sRGB 90%+，台美中三地提交。\n▸ 「16fps 電泳顯示驅動（Video ePaper）」：電子紙播放低幀率影片用於數位看板。",
+  pricer:"📰 本週事件（2026/03/03–07）\n\n▸ 荷蘭 PLUS 超市合約正式生效：265 家門市，SEK 1.4 億，2026–2027 分批部署，史上最大單一客戶訂單。\n▸ Pricer Avenue 浮動畫布功能在四國（瑞典、芬蘭、法國、英國）試點門市正式開放，促銷資訊切換從 2 小時縮短至 8 分鐘。\n▸ 加拿大 Sobeys 旗下 Atlantic Superstore 新增部署，北美門市累計突破 800 家。\n\n🔬 最新專利申請\n\n▸ 「基於時間、庫存、客流的多層資訊自動排版」：浮動畫布核心方法專利，ESL 業界首件「內容智慧排版」。\n▸ 「電子紙標籤再製造流程」：循環再利用製程，符合歐盟 WEEE 法規。",
+  m2comm:"📰 近期事件（2025 Q4–2026 Q1）\n\n▸ 2025 Q4 美廉社全台 1,300+ 門市 ELSA ESL 全面上線，引發全聯、家樂福等零售連鎖主動詢問。\n▸ 2025/04 Touch Taiwan：醫療、物流、工廠三項展示，與三家日本企業展開 PoC 洽談。\n▸ 法國藥局市場累計突破 500 家門市，成為法國 Sub-1GHz ESL 市占最高的亞洲廠商。\n\n🔬 最新專利申請\n\n▸ PLATANUS 協定 PCT 國際申請進入 EPO、JPO、USPTO 三地國家階段。\n▸ 「Multi-hop Mesh 中繼網路」：突破 Star Topology 距離限制，適合倉儲、停車場大空間。\n▸ 「TinyML 邊緣推理 ESL 模組」：FG23 執行輕量 AI，標籤端溫濕度異常偵測。",
+};
+
+var NEWS_DATA={
+  vusion:{updated:"2026/03/07",nextER:"2026/04/21",
+    fin:[{k:"FY2025 營收",v:"€1.52B（+51% YoY）"},{k:"EBITDA",v:"€277.4M（+73% YoY）"},{k:"EBITDA 率",v:"18.2%"},{k:"淨利（調整後）",v:"€98.7M（+85%）"},{k:"自由現金流",v:"€56M"},{k:"淨現金",v:"€439M"},{k:"股息",v:"€0.90/股"},{k:"2026 展望",v:"成長 15–20%"}],
+    news:[{tag:"財報",tc:"#FFB300",date:"2026/02/27",title:"FY2025 年報：EBITDA +73%，Q4 首破 €500M",body:"美洲+亞太營收達 €1.11B（+115%），Walmart EdgeSense 快速部署，配息升至 €0.90/股。"},{tag:"展望",tc:"#00FFB2",date:"2026/02/27",title:"2026 展望：AI攝影機逾15萬台，VAR +40%",body:"VusionCloud 容量擴至 3.75 億台，VusionLive AI 功能升級，2026/04/21 法說會。"},{tag:"品牌",tc:"#EC4899",date:"2026/01/xx",title:"正式更名為 Vusion S.A.（原 VusionGroup）",body:"強化品牌聚焦 Vusion 平台生態系。"}],
+    patents:[{title:"Echsence AI 視覺平台",desc:"AI 視覺+ESL 整合平台，雲端 ESL 裝置數年增 200%+"},{title:"VusionCloud IoT 架構",desc:"覆蓋 3.75 億台裝置的雲端零售管理系統"},{title:"EdgeSense 邊緣運算",desc:"Walmart 超市的貨架邊緣智慧感測專利技術"}]
+  },
+  solum:{updated:"2026/03/07",nextER:"待公告",
+    fin:[{k:"在手訂單",v:"2.2 兆韓元"},{k:"2026 營收目標",v:"KRW 1.7T–1.85T"},{k:"主要市場",v:"歐洲、日本、北美"},{k:"目標價",v:"KRW 22,000–23,000"},{k:"評級",v:"Buy（多家維持）"},{k:"H1 催化劑",v:"北美大型ESL專案"}],
+    news:[{tag:"展覽",tc:"#22D3EE",date:"2026/03/03",title:"RetailTech Japan 2026 東京（3/3–6）",body:"發表「Retail in Sync」願景，與三家日本量販連鎖簽署 PoC 意向書，Q2 啟動。"},{tag:"合作",tc:"#4FC3F7",date:"2026/02/27",title:"與 Competera 擴大 AI 定價 × ESL 整合",body:"整合 AI 定價引擎與 Newton ESL，透過 API 即時自動更新。EuroShop 展後獲歐洲熱烈迴響。"},{tag:"合作",tc:"#4FC3F7",date:"2026/02/25",title:"SPAR International 續簽 ESL 優先供應商協議",body:"提供 Newton Core+ 及 32 吋 Newton e-Paper 系列給全球 SPAR 加盟店。"}],
+    patents:[{title:"Newton Protocol 通訊協定",desc:"自研低延遲無線通訊協定，大規模 ESL 部署核心"},{title:"SOLUM Store Platform",desc:"整合 ESL、AI 攝影機、數位標牌、IoT 感測器的單一資料管線平台"},{title:"Newton Core+ ESL",desc:"支援 BLE 定位與四色電子紙顯示的新一代高效能 ESL"}]
+  },
+  eink:{updated:"2026/03/07",nextER:"2026/03/18",
+    fin:[{k:"FY2025 淨利",v:"NT$7.82B（-21% YoY）"},{k:"EPS",v:"NT$6.85（前年 NT$8.69）"},{k:"股息",v:"NT$4.5/股（配息率 66%）"},{k:"授權收入",v:"知識產權授權年減 60%"},{k:"市值（3/6）",v:"NT$3,451 億"},{k:"⚠️ 法說會",v:"2026/03/18（下週）"},{k:"專利數",v:"已申請 2,750+，獲證 ~1,840"}],
+    news:[{tag:"市場",tc:"#FF6B35",date:"2026/03/05",title:"3/5 觸及 52W 低 TWD 153.5，3/6 反彈 165",body:"⚠️ 下週 3/18 法說會為最近最重要事件，市場等待全年訂單能見度指引。"},{tag:"技術",tc:"#A855F7",date:"2026/03",title:"四色 ESL 供應鏈庫存回歸健康",body:"三色轉四色換代週期完成，客戶庫存清化，IC 與模組供給瓶頸解除，Q1 為谷底。"},{tag:"展望",tc:"#00FFB2",date:"2025/11/20",title:"預期 2026–2028 年營收獲利創歷史新高",body:"H6 新產線 2026 年投產，桃園觀音廠區重啟建設，揚州廠擴產超大尺寸電子紙。"}],
+    patents:[{title:"四色 ePaper（ACeP）技術",desc:"已申請 2,750+ 件專利，ESL/eReader/eNote/SmartTag 全線覆蓋"},{title:"Oxide TFT 與 Flexible Display",desc:"新世代薄膜電晶體與可撓式電子紙核心製程專利"},{title:"H6 大尺寸產線技術",desc:"30 吋以上室內外大型電子紙看板的新世代量產技術"}]
+  },
+  pricer:{updated:"2026/03/07",nextER:"2026/04/23",
+    fin:[{k:"FY2025 營收",v:"SEK 2.15B（-16% YoY）"},{k:"淨利",v:"SEK 1.3M（-99% YoY）"},{k:"EBITDA",v:"SEK 148.2M（利潤率 6.53%）"},{k:"市值",v:"SEK 4.82 億"},{k:"52週高/低",v:"SEK 9.92 / 2.91"},{k:"目標價",v:"SEK 7.13（分析師平均）"},{k:"員工數",v:"210 人（斯德哥爾摩）"},{k:"下次法說會",v:"2026/04/23"}],
+    news:[{tag:"訂單",tc:"#00E5FF",date:"2026/02",title:"獲荷蘭 PLUS 超市 SEK 1.4億大單（史上最大）",body:"265 家門市，2026–2027 分批部署，同步回收 300 萬個舊標籤作循環利用。"},{tag:"展望",tc:"#00FFB2",date:"2026/02",title:"Avenue 浮動畫布擴展至 4 國，切換縮至 8 分鐘",body:"瑞典、芬蘭、法國、英國同步試點，Sobeys 加拿大北美部署持續推進，累計 800+ 門市。"},{tag:"財報",tc:"#FFB300",date:"2025/Q4",title:"Q4 2025 營收 SEK 573M（超出預期 SEK 549M）",body:"Q4 EPS SEK 0.07，略低預期。管理層首度公開 Pricer Avenue ARR 目標：2026 年 ARR 占總營收 15%。"}],
+    patents:[{title:"Pricer Plaza 雲端管理平台",desc:"可擴展的雲端 ESL 管理、監控與整合平台，支援全店數位化"},{title:"SmartFLASH 光學無線通訊",desc:"紅外線光學基地台技術，高速可靠的店內通訊協定"},{title:"Pricer Shelf Vision AI",desc:"AI 雲端攝影機，用於店內貨架即時監控與合規驗證"}]
+  },
+  m2comm:{updated:"2026/03/07",nextER:"未上市（無財報義務）",
+    fin:[{k:"公司性質",v:"私人未上市公司"},{k:"成立年份",v:"2012 年（新竹）"},{k:"核心技術",v:"PLATANUS Sub-1GHz"},{k:"主力產品",v:"ELSA ESL 系統"},{k:"台灣最大案例",v:"美廉社 1,300+ 門市"},{k:"主要市場",v:"台灣、法國、日本"}],
+    news:[{tag:"合作",tc:"#4FC3F7",date:"2025/Q4",title:"與元太科技、三商家購完成台灣最大規模ESL部署",body:"全台美廉社逾 1,300 家門市全面導入 ELSA，每店節省 1 小時人力，全台年減近 7,000 噸 CO₂。"},{tag:"展覽",tc:"#22D3EE",date:"2025/04",title:"Touch Taiwan 2025 展出 ELSA 新應用",body:"展示醫療、物流與智慧製造垂直市場解決方案，與三家日本企業展開 PoC 洽談。"},{tag:"技術",tc:"#A855F7",date:"2024",title:"導入 Silicon Labs FG23 SoC，通訊可靠性 99.95%+",body:"FG23 整合 MCU 與 Sub-GHz 模組於單晶片，大幅降低標籤成本，每小時可處理 10,000 次更新。"}],
+    patents:[{title:"PLATANUS 無線通訊協定",desc:"100% 自研 Sub-1GHz 技術，解決 IoT 過度耗電與複雜網路管理問題"},{title:"ELSA 雲端原生架構",desc:"無需額外硬體，即插即用，大幅降低安裝成本與複雜度"},{title:"同步網路管理技術",desc:"確保 99.95%+ 可靠性與每小時 10,000 次更新速率"}]
+  },
+};
+
+// ════════════════════════════════════════════════
+// 狀態
+// ════════════════════════════════════════════════
+var AS="vusion", TAB="chart", RANGE="年", CHART=null;
+var LIVE={}, UDATE="2026/03/06", IS_LIVE=false;
+
+// ════════════════════════════════════════════════
+// 工具
+// ════════════════════════════════════════════════
+function pct(a,b){return b?(((a-b)/b)*100).toFixed(2):"0.00";}
+function uc(v){return parseFloat(v)>=0?"#00FFB2":"#FF4444";}
+function sign(v){return parseFloat(v)>=0?"+":" ";}
+
+function setStatus(s,lbl){
+  var colors={live:"#00FFB2",loading:"#FFB300",static:"#7A9AB8"};
+  var c=colors[s]||colors.static;
+  document.getElementById("sdot").style.background=c;
+  document.getElementById("slabel").style.color=c;
+  document.getElementById("slabel").textContent=lbl||s;
+  document.getElementById("sbadge").style.background=c+"18";
+  var btn=document.getElementById("refreshBtn");
+  if(s==="loading") btn.classList.add("spin"); else btn.classList.remove("spin");
+}
+function flash(m){
+  var el=document.getElementById("flashMsg");
+  el.textContent=m;
+  setTimeout(function(){el.textContent="";},3000);
+}
+
+// ════════════════════════════════════════════════
+// 載入 prices.json（同 origin，無 CORS）
+// ════════════════════════════════════════════════
+function doRefresh(){
+  setStatus("loading","載入中");
+  fetch("./prices.json?t="+Date.now())
+    .then(function(r){if(!r.ok)throw new Error("HTTP "+r.status);return r.json();})
+    .then(function(j){
+      ["vusion","solum","eink","pricer"].forEach(function(id){
+        var d=j[id];
+        if(d&&d.current!=null){
+          LIVE[id]=d;
+          // 更新歷史最後一筆
+          if(HIST[id]&&HIST[id].length>0){
+            HIST[id][HIST[id].length-1].p=d.current;
+            HIST[id][HIST[id].length-1].d=j.updated||UDATE;
+          }
+        }
+      });
+      UDATE=j.updated||UDATE;
+      IS_LIVE=true;
+      setStatus("live",UDATE);
+      flash("✓ 已更新（"+UDATE+"）");
+      document.getElementById("footer").textContent="即時收盤 "+UDATE+" · GitHub esl-prices · 非投資建議";
+      render();
+    })
+    .catch(function(e){
+      setStatus("static","靜態後備");
+      flash("⚠ 使用靜態收盤");
+      render();
+    });
+}
+
+// ════════════════════════════════════════════════
+// 圖表資料過濾（日/週/月/季/年）
+// ════════════════════════════════════════════════
+function getChartData(id,range){
+  var all=HIST[id]||[];
+  if(!all.length) return [];
+  var now=new Date(2026,2,11); // 今天
+  var cutMs={"日":60*864e5,"週":120*864e5,"月":183*864e5,"季":366*864e5,"年":4*366*864e5}[range]||4*366*864e5;
+  var filtered=all.filter(function(r){
+    var p=r.d.split("/");
+    var yr=parseInt(p[2])<100?2000+parseInt(p[2]):parseInt(p[2]);
+    var dt=new Date(yr,parseInt(p[0])-1,parseInt(p[1]));
+    var diff=now-dt;
+    return diff>=0&&diff<=cutMs;
+  });
+  var step=range==="日"?1:range==="週"?1:range==="月"?2:range==="季"?2:3;
+  return filtered.filter(function(_,i){return i%step===0;}).map(function(r){return{date:r.d,price:r.p};});
+}
+
+// ════════════════════════════════════════════════
+// 渲染
+// ════════════════════════════════════════════════
+function render(){
+  renderCards();
+  renderHero();
+  renderTabs();
+  renderContent();
+}
+
+function cur(id){var lv=LIVE[id];return lv?lv.current:BASE[id].current;}
+function prv(id){var lv=LIVE[id];return lv?lv.prev:BASE[id].prev;}
+function h52(id){var lv=LIVE[id];return(lv&&lv.h52)||BASE[id].h52;}
+function l52(id){var lv=LIVE[id];return(lv&&lv.l52)||BASE[id].l52;}
+function tgt(id){var lv=LIVE[id];return(lv&&lv.target)||BASE[id].target;}
+function rat(id){var lv=LIVE[id];return(lv&&lv.rating)||BASE[id].rating;}
+function ytd(id){var lv=LIVE[id];return(lv&&lv.ytd!=null?lv.ytd:BASE[id].ytd);}
+
+function renderCards(){
+  var s=STOCKS.map(function(s){
+    var c=cur(s.id),p=prv(s.id);
+    var ch=c&&p?pct(c,p):null;
+    var act=AS===s.id;
+    return '<button class="sc" style="background:'+(act?s.c+'22':'#0d1525')+';border:1px solid '+(act?s.c:'#0d1e32')+'" onclick="sel(\''+s.id+'\')">'
+      +(IS_LIVE&&LIVE[s.id]?'<div style="position:absolute;top:5px;right:5px;width:5px;height:5px;border-radius:50%;background:#00FFB2"></div>':'')
+      +'<div class="stk" style="color:'+s.c+'">'+s.ticker+'</div>'
+      +'<div class="snm">'+s.short+'</div>'
+      +(c?'<div class="sprc" style="color:'+s.c+'">'+c.toLocaleString()+'</div><div class="scur">'+s.cur+'</div>'
+           +'<div class="schg" style="color:'+(ch?uc(ch):'#F59E0B')+'">'+(ch?(parseFloat(ch)>=0?'▲':'▼')+Math.abs(ch)+'%':'未上市')+'</div>'
+        :'<div class="sprc" style="font-size:10px;color:#F59E0B">未上市</div><div class="scur">TWD</div><div class="schg" style="color:#F59E0B">私人公司</div>')
+      +'</button>';
+  }).join('');
+  document.getElementById("scards").innerHTML=s;
+}
+
+function renderHero(){
+  var st=STOCKS.find(function(x){return x.id===AS;});
+  var b=BASE[AS];
+  var c=cur(AS),p=prv(AS);
+  var ch=c&&p?pct(c,p):"0.00";
+  var up=parseFloat(ch)>=0;
+  var h=h52(AS),l=l52(AS),tg=tgt(AS),ra=rat(AS),yt=ytd(AS);
+  var livBadge=IS_LIVE&&LIVE[AS]
+    ?'<span style="background:#00FFB222;color:#00FFB2;border-radius:4px;padding:1px 6px;font-size:10px;font-family:monospace;margin-left:6px;">LIVE</span>'
+    :'<span style="background:#7A9AB822;color:#7A9AB8;border-radius:4px;padding:1px 6px;font-size:10px;font-family:monospace;margin-left:6px;">靜態</span>';
+  document.getElementById("pbox").innerHTML=
+    '<div>'
+      +'<div class="plb">'+st.ex+' · '+UDATE+livBadge+'</div>'
+      +'<div class="pmain" style="color:'+st.c+'">'+(c?c.toLocaleString():'未上市')+'</div>'
+      +'<div class="pcur">'+st.cur+'</div>'
+    +'</div>'
+    +'<div class="pr">'
+      +(c?'<div class="pday" style="color:'+(up?'#00FFB2':'#FF4444')+'">'+sign(ch)+ch+'% 今日</div>':'<div class="pday" style="color:#F59E0B">📋 公司情報</div>')
+      +(yt!=null?'<div class="pytd" style="color:'+(yt>=0?'#00FFB2':'#FF4444')+'">'+yt+'% YTD</div>':'<div class="pytd" style="color:#7A9AB8">無公開報價</div>')
+      +(tg?'<div class="ptgt">目標 '+st.cur+' '+tg.toLocaleString()+'</div>':'')
+      +'<div class="prat">'+ra+'</div>'
+    +'</div>';
+}
+
+function renderTabs(){
+  var st=STOCKS.find(function(x){return x.id===AS;});
+  var C=st.c;
+  document.getElementById("tabrow").innerHTML=
+    [["chart","📈 走勢圖"],["report","📝 收盤報告"],["news","📰 產業動態"]].map(function(t){
+      return '<button class="'+(TAB===t[0]?'on':'')+'" style="'+(TAB===t[0]?'background:'+C+';':'')
+        +'" onclick="setTab(\''+t[0]+'\')">'+t[1]+'</button>';
+    }).join('');
+}
+
+function renderContent(){
+  document.getElementById("tchart").style.display=TAB==="chart"?"block":"none";
+  document.getElementById("treport").style.display=TAB==="report"?"block":"none";
+  document.getElementById("tnews").style.display=TAB==="news"?"block":"none";
+  if(TAB==="chart") renderChart();
+  if(TAB==="report") renderReport();
+  if(TAB==="news") renderNews();
+}
+
+function renderChart(){
+  var st=STOCKS.find(function(x){return x.id===AS;});
+  var C=st.c;
+  var h=h52(AS),l=l52(AS),tg=tgt(AS),b=BASE[AS];
+  var chartData=getChartData(AS,RANGE);
+
+  var rngBtns=['日','週','月','季','年'].map(function(r){
+    return '<button class="'+(RANGE===r?'on':'')+'" style="'+(RANGE===r?'background:'+C+';color:#050a14;border-color:'+C+';':'')
+      +'" onclick="setRange(\''+r+'\')">'+r+'</button>';
+  }).join('');
+
+  var subLbl={"日":"近60天 · 每日收盤","週":"近4個月 · 每週","月":"近6個月 · 雙週","季":"近1年 · 月收盤","年":"2023–2026 · 全歷史"}[RANGE];
+  if(AS==="m2comm") subLbl="未上市 · 無收盤數據";
+
+  document.getElementById("tchart").innerHTML=
+    '<div class="panel">'
+      +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">'
+        +'<div style="font-size:11px;color:#A8C0D8;font-family:monospace">年高: '+(h?h.toLocaleString():'N/A')+' · 年低: '+(l?l.toLocaleString():'N/A')+'</div>'
+        +'<div class="rngrow">'+rngBtns+'</div>'
+      +'</div>'
+      +'<div class="plbl">'+subLbl+' · 資料來源：Yahoo Finance / Investing.com</div>'
+      +(AS==="m2comm"
+        ?'<div style="text-align:center;padding:50px 0;color:#7A9AB8;font-size:13px">未上市公司 · 無公開收盤數據</div>'
+        :'<canvas id="myChart"></canvas>'
+      )
+      +'<div style="display:flex;gap:16px;margin-top:8px;font-size:12px">'
+        +'<span style="color:#FF4444">— 52週高點</span>'
+        +'<span style="color:#00FFB2">— 52週低點</span>'
+      +'</div>'
+      +'<div class="mg">'
+        +'<div class="mc"><div class="ml">52週高點</div><div class="mv">'+(h?h.toLocaleString():'N/A')+'</div></div>'
+        +'<div class="mc"><div class="ml">52週低點</div><div class="mv">'+(l?l.toLocaleString():'N/A')+'</div></div>'
+        +'<div class="mc"><div class="ml">市值</div><div class="mv">'+b.mc+'</div></div>'
+        +'<div class="mc"><div class="ml">目標價</div><div class="mv">'+(tg?st.cur+' '+tg.toLocaleString():'無')+'</div></div>'
+      +'</div>'
+    +'</div>';
+
+  if(AS!=="m2comm"&&chartData.length>0){
+    if(CHART){CHART.destroy();CHART=null;}
+    var ctx=document.getElementById("myChart").getContext("2d");
+    CHART=new Chart(ctx,{
+      type:"line",
+      data:{
+        labels:chartData.map(function(d){return d.date;}),
+        datasets:[{
+          data:chartData.map(function(d){return d.price;}),
+          borderColor:C,borderWidth:2.5,pointRadius:0,tension:0.3,fill:false
+        }]
+      },
+      options:{
+        responsive:true,maintainAspectRatio:true,animation:{duration:300},
+        plugins:{
+          legend:{display:false},
+          tooltip:{
+            mode:"nearest",intersect:false,
+            backgroundColor:"#0a0f1e",borderColor:"#1e2d4a",borderWidth:1,titleColor:"#8899aa",
+            callbacks:{label:function(ctx){return st.cur+" "+ctx.parsed.y.toLocaleString();}}
+          }
+        },
+        scales:{
+          x:{grid:{color:"#0d1e32"},ticks:{color:"#3a5070",font:{size:9},maxTicksLimit:8}},
+          y:{grid:{color:"#0d1e32"},ticks:{color:"#3a5070",font:{size:10},callback:function(v){return v.toLocaleString();}},width:80}
+        }
+      },
+      plugins:[{id:"rl",afterDraw:function(ch){
+        if(!h&&!l)return;
+        var c=ch.ctx,x=ch.scales.x,y=ch.scales.y;
+        [[h,"#FF4444"],[l,"#00FFB2"]].forEach(function(pair){
+          if(!pair[0])return;
+          var yp=y.getPixelForValue(pair[0]);
+          c.save();c.setLineDash([4,4]);c.strokeStyle=pair[1];c.lineWidth=1;
+          c.beginPath();c.moveTo(x.left,yp);c.lineTo(x.right,yp);c.stroke();c.restore();
+        });
+      }}]
+    });
+  }
+}
+
+function renderReport(){
+  var st=STOCKS.find(function(x){return x.id===AS;});
+  var C=st.c;
+  var c=cur(AS),yt=ytd(AS);
+  document.getElementById("treport").innerHTML=
+    '<div class="rpanel" id="rpanel">'
+      +'<div class="rctr">'
+        +'<div class="remo">📊</div>'
+        +'<div class="rtit">'+st.name+' 收盤分析</div>'
+        +'<div class="rdt">收盤 '+UDATE+(IS_LIVE&&LIVE[AS]?" · 即時":" · 靜態後備")+'</div>'
+        +'<button class="btnp" style="background:'+C+';color:#050a14" onclick="showStaticRpt()">⚡ 技術面報告（巴菲特視角）</button>'
+        +'<button class="btns" style="color:'+C+';border:1px solid '+C+'88" onclick="showNewsRpt()">🌐 最新新聞 + 分析</button>'
+        +'<button class="btns" style="color:'+C+';border:1px solid '+C+'88;margin-top:8px" onclick="runAI()">🤖 AI 即時分析</button>'
+        +'<div class="bhi">AI 分析依據最新資料，約 15 秒</div>'
+      +'</div>'
+    +'</div>';
+}
+
+function showStaticRpt(){
+  var st=STOCKS.find(function(x){return x.id===AS;});
+  document.getElementById("rpanel").innerHTML=
+    '<div class="rhead"><div><span class="rsn" style="color:'+st.c+'">'+st.name+'</span><span class="rss">技術面報告</span></div><button class="cbtn" onclick="renderReport()">✕</button></div>'
+    +'<div class="rbody">'+REPORTS[AS]+'</div>'
+    +'<div class="rftr">資料：'+UDATE+' · 以上內容僅供參考，不構成投資建議</div>';
+}
+function showNewsRpt(){
+  var st=STOCKS.find(function(x){return x.id===AS;});
+  document.getElementById("rpanel").innerHTML=
+    '<div class="rhead"><div><span class="rsn" style="color:'+st.c+'">'+st.name+'</span><span class="rss">最新新聞</span></div><button class="cbtn" onclick="renderReport()">✕</button></div>'
+    +'<div class="rbody">'+LATEST_NEWS[AS]+'</div>'
+    +'<div class="rftr">資料：'+UDATE+' · 以上內容僅供參考，不構成投資建議</div>';
+}
+
+function runAI(){
+  var st=STOCKS.find(function(x){return x.id===AS;});
+  var C=st.c;
+  document.getElementById("rpanel").innerHTML=
+    '<div style="text-align:center;padding-top:50px">'
+      +'<div class="ldots"><div class="ldot" style="background:'+C+'"></div><div class="ldot" style="background:'+C+'"></div><div class="ldot" style="background:'+C+'"></div></div>'
+      +'<div style="margin-top:14px;font-size:14px;color:'+C+'">AI 即時分析中⋯</div>'
+      +'<div style="margin-top:6px;font-size:11px;color:#3a5070">依據 '+UDATE+' 收盤資料</div>'
+    +'</div>';
+  var b=BASE[AS];
+  var c=cur(AS),p=prv(AS);
+  var ch=c&&p?pct(c,p):"0";
+  var today=new Date().toLocaleDateString("zh-TW",{year:"numeric",month:"long",day:"numeric"});
+  var latestNews=LATEST_NEWS[AS]||"";
+  var prompt="你是ESL產業股票分析師。今天是 "+today+"。\n\n以下是最新市場資訊：\n"+latestNews+"\n\n請根據以上最新資訊，撰寫 "+st.name+"（"+st.ticker+"）今日收盤分析報告。\n\n股價數據：\n- 收盤："+st.cur+" "+(c?c.toLocaleString():"未上市")+"\n- 漲跌："+(parseFloat(ch)>=0?"+":"")+ch+"%\n- YTD："+b.ytd+"%\n- 52週高："+h52(AS)+"，低："+l52(AS)+"\n- 目標價："+(tgt(AS)||"無")+"，評級："+rat(AS)+"\n\n請依格式撰寫，每段 emoji 標題，300字內，純文字：\n📊 市場摘要（引用最新資訊）\n🔍 ESL 產業背景\n⚡ 技術面信號\n💡 交易洞察";
+
+  fetch("https://api.anthropic.com/v1/messages",{
+    method:"POST",
+    headers:{"Content-Type":"application/json","anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},
+    body:JSON.stringify({model:"claude-sonnet-4-5",max_tokens:1000,messages:[{role:"user",content:prompt}]})
+  }).then(function(r){if(!r.ok)throw new Error("HTTP "+r.status);return r.json();})
+  .then(function(j){
+    var txt=(j.content||[]).filter(function(b){return b.type==="text";}).map(function(b){return b.text;}).join("\n").trim();
+    if(!txt) throw new Error("no content");
+    document.getElementById("rpanel").innerHTML=
+      '<div class="rhead"><div><span class="rsn" style="color:'+C+'">'+st.name+'</span><span class="rss">AI 即時分析</span></div><button class="cbtn" onclick="renderReport()">✕</button></div>'
+      +'<div class="rbody">🔍 已整合最新資訊（'+today+'）\n\n'+txt+'</div>'
+      +'<div class="rftr">以上內容僅供參考，不構成投資建議</div>';
+  }).catch(function(err){
+    document.getElementById("rpanel").innerHTML=
+      '<div class="rhead"><div><span class="rsn" style="color:'+C+'">'+st.name+'</span><span class="rss">最新新聞</span></div><button class="cbtn" onclick="renderReport()">✕</button></div>'
+      +'<div class="rbody">⚠️ AI 連線失敗，以下為最新搜尋摘要：\n\n'+latestNews+'</div>'
+      +'<div class="rftr">以上內容僅供參考，不構成投資建議</div>';
+  });
+}
+
+function renderNews(){
+  var st=STOCKS.find(function(x){return x.id===AS;});
+  var C=st.c;
+  var nd=NEWS_DATA[AS];
+  var finHTML=nd.fin.map(function(f){
+    return '<div class="fitem"><div class="fk">'+f.k+'</div><div class="fv">'+f.v+'</div></div>';
+  }).join('');
+  var newsHTML=nd.news.map(function(n,i){
+    var last=i===nd.news.length-1;
+    return '<div class="nitem"'+(last?' style="border-bottom:none;margin-bottom:0;padding-bottom:0"':'')+'>'+
+      '<div style="display:flex;align-items:center;margin-bottom:4px">'+
+        '<span class="ntag" style="background:'+n.tc+'20;color:'+n.tc+'">'+n.tag+'</span>'+
+        '<span class="ndate">'+n.date+'</span>'+
+      '</div>'+
+      '<div class="ntitle">'+n.title+'</div>'+
+      '<div class="nbody">'+n.body+'</div>'+
+    '</div>';
+  }).join('');
+  var patHTML=nd.patents.map(function(p,i){
+    var last=i===nd.patents.length-1;
+    return '<div class="pitem"'+(last?' style="border-bottom:none;margin-bottom:0;padding-bottom:0"':'')+'>'+
+      '<div class="pdot" style="background:'+C+'"></div>'+
+      '<div><div class="ptitle">'+p.title+'</div><div class="pdesc">'+p.desc+'</div></div>'+
+    '</div>';
+  }).join('');
+
+  document.getElementById("tnews").innerHTML=
+    '<div class="nbox" style="border-color:'+C+'44">'
+      +'<div class="nhead"><div class="ntit" style="color:'+C+'">📊 財報摘要</div><div class="ner">法說會：'+nd.nextER+'</div></div>'
+      +'<div class="fgrid">'+finHTML+'</div>'
+      +'<div class="fupd">資料更新：'+nd.updated+'</div>'
+    +'</div>'
+    +'<div class="nbox">'
+      +'<div class="ntit" style="color:'+C+';margin-bottom:10px">📰 重大新聞</div>'
+      +newsHTML
+    +'</div>'
+    +'<div class="nbox">'
+      +'<div class="ntit" style="color:'+C+';margin-bottom:10px">🔬 技術專利重點</div>'
+      +patHTML
+    +'</div>';
+}
+
+// ════════════════════════════════════════════════
+// 事件處理
+// ════════════════════════════════════════════════
+function sel(id){AS=id;TAB="chart";RANGE="年";render();}
+function setTab(t){TAB=t;renderTabs();renderContent();}
+function setRange(r){RANGE=r;renderChart();}
+
+// ════════════════════════════════════════════════
+// 啟動
+// ════════════════════════════════════════════════
+if(!window.navigator.standalone) document.getElementById("banner").style.display="block";
+setStatus("static","靜態後備");
+render();
+doRefresh(); // 立即嘗試載入最新資料
+</script>
+</body>
+</html>
