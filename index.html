@@ -413,18 +413,102 @@ function flash(m){
 }
 
 // ════════════════════════════════════════════════
-// 載入 prices.json（同 origin，無 CORS）
+// Yahoo Finance 即時抓取（CORS proxy 輪流嘗試）
 // ════════════════════════════════════════════════
+var TICKERS={
+  vusion:"VU.PA",
+  solum:"248070.KS",
+  eink:"8069.TWO",
+  pricer:"PRIC-B.ST"
+};
+
+// 多個 proxy 輪流，第一個成功就停
+var PROXIES=[
+  function(url){return "https://corsproxy.io/?"+encodeURIComponent(url);},
+  function(url){return "https://api.allorigins.win/raw?url="+encodeURIComponent(url);},
+  function(url){return "https://thingproxy.freeboard.io/fetch/"+url;}
+];
+
+function yahooUrl(ticker){
+  return "https://query1.finance.yahoo.com/v8/finance/chart/"+encodeURIComponent(ticker)+"?interval=1d&range=5d";
+}
+
+// 用 proxy 試抓一支股票，回傳 {current, prev, h52, l52}
+function fetchOneWithProxy(ticker, proxyIdx){
+  if(proxyIdx>=PROXIES.length) return Promise.reject(new Error("all proxies failed"));
+  var url=PROXIES[proxyIdx](yahooUrl(ticker));
+  return fetch(url,{signal:AbortSignal.timeout(8000)})
+    .then(function(r){
+      if(!r.ok) throw new Error("HTTP "+r.status);
+      return r.json();
+    })
+    .then(function(d){
+      var res=d&&d.chart&&d.chart.result&&d.chart.result[0];
+      var meta=res&&res.meta;
+      if(!meta||!meta.regularMarketPrice) throw new Error("no price");
+      return {
+        current: Math.round(meta.regularMarketPrice*10000)/10000,
+        prev:    Math.round((meta.previousClose||meta.chartPreviousClose||meta.regularMarketPrice)*10000)/10000,
+        h52:     meta.fiftyTwoWeekHigh||null,
+        l52:     meta.fiftyTwoWeekLow||null,
+      };
+    })
+    .catch(function(){
+      // 下一個 proxy
+      return fetchOneWithProxy(ticker, proxyIdx+1);
+    });
+}
+
 function doRefresh(){
-  setStatus("loading","載入中");
+  setStatus("loading","即時抓取中");
+  var now=new Date();
+  var dateStr=(now.getFullYear())+"/"+String(now.getMonth()+1).padStart(2,"0")+"/"+String(now.getDate()).padStart(2,"0");
+  var timeStr=String(now.getHours()).padStart(2,"0")+":"+String(now.getMinutes()).padStart(2,"0");
+
+  // 並行抓 4 支上市股票
+  var ids=["vusion","solum","eink","pricer"];
+  var promises=ids.map(function(id){
+    return fetchOneWithProxy(TICKERS[id],0)
+      .then(function(d){return {id:id,d:d};})
+      .catch(function(){return {id:id,d:null};});
+  });
+
+  Promise.all(promises).then(function(results){
+    var anyLive=false;
+    results.forEach(function(r){
+      if(!r.d) return;
+      anyLive=true;
+      LIVE[r.id]=r.d;
+      // 更新歷史最後一筆為盤中即時價
+      if(HIST[r.id]&&HIST[r.id].length>0){
+        HIST[r.id][HIST[r.id].length-1].p=r.d.current;
+        HIST[r.id][HIST[r.id].length-1].d=dateStr;
+      }
+    });
+
+    if(anyLive){
+      UDATE=dateStr+" "+timeStr;
+      IS_LIVE=true;
+      setStatus("live",dateStr+" "+timeStr);
+      flash("✓ 即時 "+timeStr);
+      document.getElementById("footer").textContent="盤中即時 "+dateStr+" "+timeStr+" · 非投資建議";
+    } else {
+      // Yahoo 全失敗，改抓 prices.json 當備援
+      fallbackPricesJson();
+      return;
+    }
+    render();
+  });
+}
+
+function fallbackPricesJson(){
   fetch("./prices.json?t="+Date.now())
-    .then(function(r){if(!r.ok)throw new Error("HTTP "+r.status);return r.json();})
+    .then(function(r){if(!r.ok)throw new Error();return r.json();})
     .then(function(j){
       ["vusion","solum","eink","pricer"].forEach(function(id){
         var d=j[id];
         if(d&&d.current!=null){
           LIVE[id]=d;
-          // 更新歷史最後一筆
           if(HIST[id]&&HIST[id].length>0){
             HIST[id][HIST[id].length-1].p=d.current;
             HIST[id][HIST[id].length-1].d=j.updated||UDATE;
@@ -434,11 +518,11 @@ function doRefresh(){
       UDATE=j.updated||UDATE;
       IS_LIVE=true;
       setStatus("live",UDATE);
-      flash("✓ 已更新（"+UDATE+"）");
-      document.getElementById("footer").textContent="即時收盤 "+UDATE+" · GitHub esl-prices · 非投資建議";
+      flash("✓ prices.json "+UDATE);
+      document.getElementById("footer").textContent="收盤 "+UDATE+" · GitHub esl-prices · 非投資建議";
       render();
     })
-    .catch(function(e){
+    .catch(function(){
       setStatus("static","靜態後備");
       flash("⚠ 使用靜態收盤");
       render();
