@@ -731,10 +731,58 @@ function showStaticRpt(){
 }
 function showNewsRpt(){
   var st=STOCKS.find(function(x){return x.id===AS;});
+  var C=st.c;
+
+  // 先顯示載入中
   document.getElementById("rpanel").innerHTML=
-    '<div class="rhead"><div><span class="rsn" style="color:'+st.c+'">'+st.name+'</span><span class="rss">最新新聞</span></div><button class="cbtn" onclick="renderReport()">✕</button></div>'
-    +'<div class="rbody">'+LATEST_NEWS[AS]+'</div>'
-    +'<div class="rftr">資料：'+UDATE+' · 以上內容僅供參考，不構成投資建議</div>';
+    '<div style="text-align:center;padding-top:50px">'
+      +'<div class="ldots"><div class="ldot" style="background:'+C+'"></div><div class="ldot" style="background:'+C+'"></div><div class="ldot" style="background:'+C+'"></div></div>'
+      +'<div style="margin-top:14px;font-size:14px;color:'+C+'">搜尋最新新聞中⋯</div>'
+      +'<div style="margin-top:6px;font-size:11px;color:#3a5070">Claude web search · 約 15–20 秒</div>'
+    +'</div>';
+
+  var today=new Date().toLocaleDateString("zh-TW",{year:"numeric",month:"long",day:"numeric"});
+  var prompt="今天是 "+today+"。請搜尋 "+st.name+"（"+st.ticker+"）最近 2 週內的重大新聞、法說會、財報、訂單、合作、專利等事件。\n\n"
+    +"請用繁體中文，以純文字格式回覆，格式如下：\n\n"
+    +"📰 最新重大事件（列出 3–5 條，每條格式：▸ 日期 標題：一句話摘要）\n\n"
+    +"🔬 近期專利或技術動向（1–2 條）\n\n"
+    +"⚠️ 近期風險或注意事項（1 條）\n\n"
+    +"字數控制在 350 字內，純文字不要 markdown。";
+
+  fetch("https://api.anthropic.com/v1/messages",{
+    method:"POST",
+    headers:{
+      "Content-Type":"application/json",
+      "anthropic-version":"2023-06-01",
+      "anthropic-dangerous-direct-browser-access":"true"
+    },
+    body:JSON.stringify({
+      model:"claude-sonnet-4-6",
+      max_tokens:1000,
+      tools:[{"type":"web_search_20250305","name":"web_search"}],
+      messages:[{role:"user",content:prompt}]
+    })
+  })
+  .then(function(r){if(!r.ok)throw new Error("HTTP "+r.status);return r.json();})
+  .then(function(j){
+    // 取出所有 text block（web_search 回應會有多個 block）
+    var txt=(j.content||[])
+      .filter(function(b){return b.type==="text";})
+      .map(function(b){return b.text;})
+      .join("\n").trim();
+    if(!txt) throw new Error("no content");
+    document.getElementById("rpanel").innerHTML=
+      '<div class="rhead"><div><span class="rsn" style="color:'+C+'">'+st.name+'</span><span class="rss">即時新聞 · '+today+'</span></div><button class="cbtn" onclick="renderReport()">✕</button></div>'
+      +'<div class="rbody">'+txt+'</div>'
+      +'<div class="rftr">資料：Claude web search '+today+' · 以上內容僅供參考，不構成投資建議</div>';
+  })
+  .catch(function(err){
+    // API 失敗，fallback 到靜態新聞
+    document.getElementById("rpanel").innerHTML=
+      '<div class="rhead"><div><span class="rsn" style="color:'+C+'">'+st.name+'</span><span class="rss">靜態新聞（API 失敗）</span></div><button class="cbtn" onclick="renderReport()">✕</button></div>'
+      +'<div class="rbody">⚠️ 即時搜尋失敗（'+( err.message||"網路錯誤")+'），顯示靜態資料：\n\n'+LATEST_NEWS[AS]+'</div>'
+      +'<div class="rftr">以上內容僅供參考，不構成投資建議</div>';
+  });
 }
 
 function runAI(){
