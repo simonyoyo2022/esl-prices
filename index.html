@@ -724,10 +724,32 @@ function renderReport(){
 
 function showStaticRpt(){
   var st=STOCKS.find(function(x){return x.id===AS;});
+  var C=st.c;
+
   document.getElementById("rpanel").innerHTML=
-    '<div class="rhead"><div><span class="rsn" style="color:'+st.c+'">'+st.name+'</span><span class="rss">技術面報告</span></div><button class="cbtn" onclick="renderReport()">✕</button></div>'
-    +'<div class="rbody">'+REPORTS[AS]+'</div>'
-    +'<div class="rftr">資料：'+UDATE+' · 以上內容僅供參考，不構成投資建議</div>';
+    '<div style="text-align:center;padding-top:50px">'
+      +'<div class="ldots"><div class="ldot" style="background:'+C+'"></div><div class="ldot" style="background:'+C+'"></div><div class="ldot" style="background:'+C+'"></div></div>'
+      +'<div style="margin-top:14px;font-size:14px;color:'+C+'">載入最新報告⋯</div>'
+    +'</div>';
+
+  fetch("./report.json?t="+Date.now())
+    .then(function(r){if(!r.ok)throw new Error("HTTP "+r.status);return r.json();})
+    .then(function(j){
+      var txt=j.reports&&j.reports[AS];
+      if(!txt) throw new Error("no report for "+AS);
+      var updated=j.updated||"";
+      document.getElementById("rpanel").innerHTML=
+        '<div class="rhead"><div><span class="rsn" style="color:'+C+'">'+st.name+'</span><span class="rss">技術面報告 · '+updated+'</span></div><button class="cbtn" onclick="renderReport()">✕</button></div>'
+        +'<div class="rbody">'+txt+'</div>'
+        +'<div class="rftr">資料：Claude 分析 '+updated+' · 每日 22:00 更新 · 僅供參考，不構成投資建議</div>';
+    })
+    .catch(function(){
+      // report.json 不存在，fallback 靜態
+      document.getElementById("rpanel").innerHTML=
+        '<div class="rhead"><div><span class="rsn" style="color:'+C+'">'+st.name+'</span><span class="rss">技術面報告（靜態備用）</span></div><button class="cbtn" onclick="renderReport()">✕</button></div>'
+        +'<div class="rbody">⚠️ report.json 尚未生成（首次需等今晚 22:00 GitHub Actions 執行後才有資料）\n\n以下為靜態備用分析：\n\n'+REPORTS[AS]+'</div>'
+        +'<div class="rftr">以上內容僅供參考，不構成投資建議</div>';
+    });
 }
 function showNewsRpt(){
   var st=STOCKS.find(function(x){return x.id===AS;});
@@ -766,33 +788,64 @@ function runAI(){
     '<div style="text-align:center;padding-top:50px">'
       +'<div class="ldots"><div class="ldot" style="background:'+C+'"></div><div class="ldot" style="background:'+C+'"></div><div class="ldot" style="background:'+C+'"></div></div>'
       +'<div style="margin-top:14px;font-size:14px;color:'+C+'">AI 即時分析中⋯</div>'
-      +'<div style="margin-top:6px;font-size:11px;color:#3a5070">依據 '+UDATE+' 收盤資料</div>'
+      +'<div style="margin-top:6px;font-size:11px;color:#3a5070">先載入最新新聞，再生成報告</div>'
     +'</div>';
-  var b=BASE[AS];
-  var c=cur(AS),p=prv(AS);
-  var ch=c&&p?pct(c,p):"0";
-  var today=new Date().toLocaleDateString("zh-TW",{year:"numeric",month:"long",day:"numeric"});
-  var latestNews=LATEST_NEWS[AS]||"";
-  var prompt="你是ESL產業股票分析師。今天是 "+today+"。\n\n以下是最新市場資訊：\n"+latestNews+"\n\n請根據以上最新資訊，撰寫 "+st.name+"（"+st.ticker+"）今日收盤分析報告。\n\n股價數據：\n- 收盤："+st.cur+" "+(c?c.toLocaleString():"未上市")+"\n- 漲跌："+(parseFloat(ch)>=0?"+":"")+ch+"%\n- YTD："+b.ytd+"%\n- 52週高："+h52(AS)+"，低："+l52(AS)+"\n- 目標價："+(tgt(AS)||"無")+"，評級："+rat(AS)+"\n\n請依格式撰寫，每段 emoji 標題，300字內，純文字：\n📊 市場摘要（引用最新資訊）\n🔍 ESL 產業背景\n⚡ 技術面信號\n💡 交易洞察";
 
-  fetch("https://api.anthropic.com/v1/messages",{
-    method:"POST",
-    headers:{"Content-Type":"application/json","anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},
-    body:JSON.stringify({model:"claude-sonnet-4-5",max_tokens:1000,messages:[{role:"user",content:prompt}]})
-  }).then(function(r){if(!r.ok)throw new Error("HTTP "+r.status);return r.json();})
-  .then(function(j){
-    var txt=(j.content||[]).filter(function(b){return b.type==="text";}).map(function(b){return b.text;}).join("\n").trim();
-    if(!txt) throw new Error("no content");
-    document.getElementById("rpanel").innerHTML=
-      '<div class="rhead"><div><span class="rsn" style="color:'+C+'">'+st.name+'</span><span class="rss">AI 即時分析</span></div><button class="cbtn" onclick="renderReport()">✕</button></div>'
-      +'<div class="rbody">🔍 已整合最新資訊（'+today+'）\n\n'+txt+'</div>'
-      +'<div class="rftr">以上內容僅供參考，不構成投資建議</div>';
-  }).catch(function(err){
-    document.getElementById("rpanel").innerHTML=
-      '<div class="rhead"><div><span class="rsn" style="color:'+C+'">'+st.name+'</span><span class="rss">最新新聞</span></div><button class="cbtn" onclick="renderReport()">✕</button></div>'
-      +'<div class="rbody">⚠️ AI 連線失敗，以下為最新搜尋摘要：\n\n'+latestNews+'</div>'
-      +'<div class="rftr">以上內容僅供參考，不構成投資建議</div>';
-  });
+  // 先 fetch news.json 取得最新新聞，再餵給 Claude
+  fetch("./news.json?t="+Date.now())
+    .then(function(r){return r.ok?r.json():Promise.reject("no news.json");})
+    .then(function(j){return(j.news&&j.news[AS])||Promise.reject("no content");})
+    .catch(function(){return LATEST_NEWS[AS];}) // fallback 靜態新聞
+    .then(function(latestNews){
+      var b=BASE[AS];
+      var c=cur(AS),p=prv(AS);
+      var ch=c&&p?pct(c,p):"0";
+      var today=new Date().toLocaleDateString("zh-TW",{year:"numeric",month:"long",day:"numeric"});
+      var prompt="你是ESL產業股票分析師。今天是 "+today+"。\n\n"
+        +"以下是今日最新市場資訊（已由外部搜尋取得）：\n"+latestNews+"\n\n"
+        +"請根據以上最新資訊，撰寫 "+st.name+"（"+st.ticker+"）今日收盤分析報告。\n\n"
+        +"股價數據：\n"
+        +"- 收盤："+st.cur+" "+(c?c.toLocaleString():"未上市")+"\n"
+        +"- 漲跌："+(parseFloat(ch)>=0?"+":"")+ch+"%\n"
+        +"- YTD："+b.ytd+"%\n"
+        +"- 52週高："+h52(AS)+"，低："+l52(AS)+"\n"
+        +"- 目標價："+(tgt(AS)||"無")+"，評級："+rat(AS)+"\n\n"
+        +"請依格式撰寫，每段 emoji 標題，300字內，純文字：\n"
+        +"📊 市場摘要（必須引用最新資訊中的具體事件）\n"
+        +"🔍 ESL 產業背景\n"
+        +"⚡ 技術面信號\n"
+        +"💡 交易洞察";
+
+      return fetch("https://api.anthropic.com/v1/messages",{
+        method:"POST",
+        headers:{
+          "Content-Type":"application/json",
+          "anthropic-version":"2023-06-01",
+          "anthropic-dangerous-direct-browser-access":"true"
+        },
+        body:JSON.stringify({
+          model:"claude-sonnet-4-5",
+          max_tokens:1000,
+          messages:[{role:"user",content:prompt}]
+        })
+      })
+      .then(function(r){if(!r.ok)throw new Error("HTTP "+r.status);return r.json();})
+      .then(function(j){
+        var txt=(j.content||[]).filter(function(b){return b.type==="text";}).map(function(b){return b.text;}).join("\n").trim();
+        if(!txt) throw new Error("no content");
+        document.getElementById("rpanel").innerHTML=
+          '<div class="rhead"><div><span class="rsn" style="color:'+C+'">'+st.name+'</span><span class="rss">AI 即時分析 · '+today+'</span></div><button class="cbtn" onclick="renderReport()">✕</button></div>'
+          +'<div class="rbody">🔍 已整合最新資訊（'+today+'）\n\n'+txt+'</div>'
+          +'<div class="rftr">以上內容僅供參考，不構成投資建議</div>';
+      });
+    })
+    .catch(function(err){
+      // Claude API 失敗，顯示靜態報告
+      document.getElementById("rpanel").innerHTML=
+        '<div class="rhead"><div><span class="rsn" style="color:'+C+'">'+st.name+'</span><span class="rss">技術面報告（API 失敗）</span></div><button class="cbtn" onclick="renderReport()">✕</button></div>'
+        +'<div class="rbody">⚠️ AI 分析失敗（'+(err.message||err||"網路錯誤")+'）\n\n以下為靜態技術面報告：\n\n'+REPORTS[AS]+'</div>'
+        +'<div class="rftr">以上內容僅供參考，不構成投資建議</div>';
+    });
 }
 
 function renderNews(){
