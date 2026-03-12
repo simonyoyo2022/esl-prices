@@ -851,43 +851,94 @@ function runAI(){
 function renderNews(){
   var st=STOCKS.find(function(x){return x.id===AS;});
   var C=st.c;
-  var nd=NEWS_DATA[AS];
-  var finHTML=nd.fin.map(function(f){
-    return '<div class="fitem"><div class="fk">'+f.k+'</div><div class="fv">'+f.v+'</div></div>';
-  }).join('');
-  var newsHTML=nd.news.map(function(n,i){
-    var last=i===nd.news.length-1;
-    return '<div class="nitem"'+(last?' style="border-bottom:none;margin-bottom:0;padding-bottom:0"':'')+'>'+
-      '<div style="display:flex;align-items:center;margin-bottom:4px">'+
-        '<span class="ntag" style="background:'+n.tc+'20;color:'+n.tc+'">'+n.tag+'</span>'+
-        '<span class="ndate">'+n.date+'</span>'+
-      '</div>'+
-      '<div class="ntitle">'+n.title+'</div>'+
-      '<div class="nbody">'+n.body+'</div>'+
-    '</div>';
-  }).join('');
-  var patHTML=nd.patents.map(function(p,i){
-    var last=i===nd.patents.length-1;
-    return '<div class="pitem"'+(last?' style="border-bottom:none;margin-bottom:0;padding-bottom:0"':'')+'>'+
-      '<div class="pdot" style="background:'+C+'"></div>'+
-      '<div><div class="ptitle">'+p.title+'</div><div class="pdesc">'+p.desc+'</div></div>'+
-    '</div>';
-  }).join('');
 
+  // 先顯示載入中
   document.getElementById("tnews").innerHTML=
-    '<div class="nbox" style="border-color:'+C+'44">'
-      +'<div class="nhead"><div class="ntit" style="color:'+C+'">📊 財報摘要</div><div class="ner">法說會：'+nd.nextER+'</div></div>'
-      +'<div class="fgrid">'+finHTML+'</div>'
-      +'<div class="fupd">資料更新：'+nd.updated+'</div>'
-    +'</div>'
-    +'<div class="nbox">'
-      +'<div class="ntit" style="color:'+C+';margin-bottom:10px">📰 重大新聞</div>'
-      +newsHTML
-    +'</div>'
-    +'<div class="nbox">'
-      +'<div class="ntit" style="color:'+C+';margin-bottom:10px">🔬 技術專利重點</div>'
-      +patHTML
+    '<div style="text-align:center;padding:40px 0">'
+      +'<div class="ldots"><div class="ldot" style="background:'+C+'"></div><div class="ldot" style="background:'+C+'"></div><div class="ldot" style="background:'+C+'"></div></div>'
+      +'<div style="margin-top:12px;font-size:13px;color:'+C+'">載入產業動態⋯</div>'
     +'</div>';
+
+  fetch("./industry.json?t="+Date.now())
+    .then(function(r){if(!r.ok)throw new Error("HTTP "+r.status);return r.json();})
+    .then(function(j){
+      var nd=j.industry&&j.industry[AS];
+      if(!nd) throw new Error("no data for "+AS);
+      var newsUpdated=j.news_updated||j.updated||"";
+      var finUpdated=j.fin_updated||j.updated||"";
+
+      // 財報摘要
+      var finHTML=(nd.fin||[]).map(function(f){
+        return '<div class="fitem"><div class="fk">'+f.k+'</div><div class="fv">'+f.v+'</div></div>';
+      }).join('');
+
+      // 重大新聞（純文字 news 欄位，直接顯示）
+      var newsBody=nd.news||"（今日新聞載入中，請稍後）";
+
+      // 技術專利
+      var patHTML=(nd.patents||[]).map(function(p,i){
+        var last=i===(nd.patents.length-1);
+        return '<div class="pitem"'+(last?' style="border-bottom:none;margin-bottom:0;padding-bottom:0"':'')+'>'+
+          '<div class="pdot" style="background:'+C+'"></div>'+
+          '<div><div class="ptitle">'+p.title+'</div><div class="pdesc">'+p.desc+'</div></div>'+
+        '</div>';
+      }).join('');
+
+      document.getElementById("tnews").innerHTML=
+        '<div class="nbox" style="border-color:'+C+'44">'
+          +'<div class="nhead"><div class="ntit" style="color:'+C+'">📊 財報摘要</div><div class="ner">法說會：'+(nd.nextER||"待公告")+'</div></div>'
+          +(finHTML?'<div class="fgrid">'+finHTML+'</div>':'<div style="font-size:12px;color:#4a6080;padding:8px 0">財報資料每月1日更新</div>')
+          +'<div class="fupd">財報更新：'+finUpdated+'</div>'
+        +'</div>'
+        +'<div class="nbox">'
+          +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">'
+            +'<div class="ntit" style="color:'+C+'">📰 重大新聞</div>'
+            +'<div style="font-size:11px;color:#3a5070">'+newsUpdated+'</div>'
+          +'</div>'
+          +'<div style="font-size:13px;color:#A8C0D8;line-height:1.9;white-space:pre-wrap">'+newsBody+'</div>'
+        +'</div>'
+        +(patHTML?
+          '<div class="nbox">'
+            +'<div class="ntit" style="color:'+C+';margin-bottom:10px">🔬 技術專利重點</div>'
+            +patHTML
+          +'</div>'
+        :'');
+    })
+    .catch(function(){
+      // industry.json 不存在，fallback 靜態 NEWS_DATA
+      var nd=NEWS_DATA[AS];
+      var C2=st.c;
+      var finHTML=nd.fin.map(function(f){
+        return '<div class="fitem"><div class="fk">'+f.k+'</div><div class="fv">'+f.v+'</div></div>';
+      }).join('');
+      var newsHTML=nd.news.map(function(n,i){
+        var last=i===nd.news.length-1;
+        return '<div class="nitem"'+(last?' style="border-bottom:none;margin-bottom:0;padding-bottom:0"':'')+'>'+
+          '<div style="display:flex;align-items:center;margin-bottom:4px">'+
+            '<span class="ntag" style="background:'+n.tc+'20;color:'+n.tc+'">'+n.tag+'</span>'+
+            '<span class="ndate">'+n.date+'</span>'+
+          '</div>'+
+          '<div class="ntitle">'+n.title+'</div>'+
+          '<div class="nbody">'+n.body+'</div>'+
+        '</div>';
+      }).join('');
+      var patHTML=nd.patents.map(function(p,i){
+        var last=i===nd.patents.length-1;
+        return '<div class="pitem"'+(last?' style="border-bottom:none;margin-bottom:0;padding-bottom:0"':'')+'>'+
+          '<div class="pdot" style="background:'+C2+'"></div>'+
+          '<div><div class="ptitle">'+p.title+'</div><div class="pdesc">'+p.desc+'</div></div>'+
+        '</div>';
+      }).join('');
+      document.getElementById("tnews").innerHTML=
+        '<div style="font-size:11px;color:#F59E0B;margin-bottom:8px;text-align:center">⚠️ 靜態資料（industry.json 首次需等月初 GitHub Actions 執行）</div>'
+        +'<div class="nbox" style="border-color:'+C2+'44">'
+          +'<div class="nhead"><div class="ntit" style="color:'+C2+'">📊 財報摘要</div><div class="ner">法說會：'+nd.nextER+'</div></div>'
+          +'<div class="fgrid">'+finHTML+'</div>'
+          +'<div class="fupd">資料更新：'+nd.updated+'</div>'
+        +'</div>'
+        +'<div class="nbox"><div class="ntit" style="color:'+C2+';margin-bottom:10px">📰 重大新聞</div>'+newsHTML+'</div>'
+        +'<div class="nbox"><div class="ntit" style="color:'+C2+';margin-bottom:10px">🔬 技術專利重點</div>'+patHTML+'</div>';
+    });
 }
 
 // ════════════════════════════════════════════════
