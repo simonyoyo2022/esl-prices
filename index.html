@@ -757,7 +757,7 @@ function showStaticRpt(){
     .catch(function(){
       document.getElementById("rpanel").innerHTML=
         '<div class="rhead"><div><span class="rsn" style="color:'+C+'">'+st.name+'</span><span class="rss">技術面報告（靜態備用）</span></div><button class="cbtn" onclick="renderReport()">✕</button></div>'
-        +'<div class="rbody">⚠️ report.json 尚未生成（首次需等今晚 22:00 GitHub Actions 執行後才有資料）\n\n以下為靜態備用分析：\n\n'+REPORTS[AS]+'</div>'
+        +'<div class="rbody">⚠️ report.json 尚未生成，請至 esl-reporter repo → Actions → Run workflow 手動觸發\n\n以下為靜態備用分析：\n\n'+REPORTS[AS]+'</div>'
         +'<div class="rftr">以上內容僅供參考，不構成投資建議</div>';
     });
 }
@@ -786,7 +786,7 @@ function showNewsRpt(){
       // news.json 不存在或無該公司資料，fallback 靜態
       document.getElementById("rpanel").innerHTML=
         '<div class="rhead"><div><span class="rsn" style="color:'+C+'">'+st.name+'</span><span class="rss">靜態新聞（每日22:00更新）</span></div><button class="cbtn" onclick="renderReport()">✕</button></div>'
-        +'<div class="rbody">⚠️ news.json 尚未生成（首次需等今晚 22:00 GitHub Actions 執行後才有資料）\n\n以下為靜態備用資料：\n\n'+LATEST_NEWS[AS]+'</div>'
+        +'<div class="rbody">⚠️ news.json 無此公司資料\n\n以下為靜態備用資料：\n\n'+LATEST_NEWS[AS]+'</div>'
         +'<div class="rftr">以上內容僅供參考，不構成投資建議</div>';
     });
 }
@@ -940,7 +940,7 @@ function renderNews(){
         '</div>';
       }).join('');
       document.getElementById("tnews").innerHTML=
-        '<div style="font-size:11px;color:#F59E0B;margin-bottom:8px;text-align:center">⚠️ 靜態資料（industry.json 首次需等月初 GitHub Actions 執行）</div>'
+        '<div style="font-size:11px;color:#F59E0B;margin-bottom:8px;text-align:center">⚠️ 靜態備用資料</div>'
         +'<div class="nbox" style="border-color:'+C2+'44">'
           +'<div class="nhead"><div class="ntit" style="color:'+C2+'">📊 財報摘要</div><div class="ner">法說會：'+nd.nextER+'</div></div>'
           +'<div class="fgrid">'+finHTML+'</div>'
