@@ -1,16 +1,16 @@
 {
-  "updated": "2026/03/16",
-  "updated_ts": "2026-03-16T15:52:55.245325+08:00",
+  "updated": "2026/03/17",
+  "updated_ts": "2026-03-17T02:31:58.137314+08:00",
   "vusion": {
-    "current": 110.5,
+    "current": 113.0,
     "prev": 110.5,
-    "chg": 0.0,
+    "chg": 2.26,
     "currency": "EUR",
     "h52": 278.0,
-    "l52": 110.9,
-    "target": 283.1,
+    "l52": 108.5,
+    "target": 223.13,
     "rating": "強力買入",
-    "ytd": -22.8,
+    "ytd": -44.7,
     "is_live": true
   },
   "solum": {
@@ -38,15 +38,15 @@
     "is_live": true
   },
   "pricer": {
-    "current": 2.885,
+    "current": 2.855,
     "prev": 2.885,
-    "chg": 0.0,
+    "chg": -1.04,
     "currency": "SEK",
-    "h52": 4.83,
-    "l52": 3.53,
-    "target": 4.0,
+    "h52": 9.92,
+    "l52": 2.91,
+    "target": 7.13,
     "rating": "持有",
-    "ytd": -32.8,
+    "ytd": -65.1,
     "is_live": true
   }
 }
