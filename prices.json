@@ -14,9 +14,9 @@
     "is_live": true
   },
   "solum": {
-    "current": 15860.0,
-    "prev": 15990.0,
-    "chg": -0.81,
+    "current": 16310.0,
+    "prev": 15850.0,
+    "chg": 2.9,
     "currency": "KRW",
     "h52": 20750,
     "l52": 13870,
@@ -26,9 +26,9 @@
     "is_live": true
   },
   "eink": {
-    "current": 142.0,
-    "prev": 144.0,
-    "chg": -1.39,
+    "current": 142.5,
+    "prev": 142.0,
+    "chg": 0.35,
     "currency": "TWD",
     "h52": 312.0,
     "l52": 164.5,
