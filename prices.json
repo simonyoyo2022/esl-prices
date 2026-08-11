@@ -1,22 +1,8 @@
 {
-  "updated": "2026/08/12",
-  "updated_ts": "2026-08-12T02:25:09.690381+08:00",
-  "vusion": {
-    "current": 128.2,
-    "prev": 128.0,
-    "chg": 0.16,
-    "currency": "EUR",
-    "h52": 278.0,
-    "l52": 108.5,
-    "target": 223.13,
-    "rating": "強力買入",
-    "ytd": -44.7,
-    "is_live": true
-  },
   "solum": {
-    "current": 15420.0,
-    "prev": 15520.0,
-    "chg": -0.64,
+    "current": 15520.0,
+    "prev": 14980.0,
+    "chg": 3.6,
     "currency": "KRW",
     "h52": 20750,
     "l52": 13870,
@@ -26,9 +12,9 @@
     "is_live": true
   },
   "eink": {
-    "current": 165.0,
-    "prev": 176.5,
-    "chg": -6.52,
+    "current": 176.5,
+    "prev": 196.0,
+    "chg": -9.95,
     "currency": "TWD",
     "h52": 312.0,
     "l52": 164.5,
@@ -37,16 +23,6 @@
     "ytd": -41.5,
     "is_live": true
   },
-  "pricer": {
-    "current": 4.49,
-    "prev": 4.39,
-    "chg": 2.28,
-    "currency": "SEK",
-    "h52": 9.92,
-    "l52": 2.91,
-    "target": 7.13,
-    "rating": "持有",
-    "ytd": -65.1,
-    "is_live": true
-  }
+  "updated": "2026/08/12",
+  "updated_ts": "2026-08-12T02:25:09.690381+08:00"
 }
