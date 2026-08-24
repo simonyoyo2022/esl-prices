@@ -23,8 +23,8 @@
     "ytd": -41.5,
     "is_live": true
   },
-  "updated": "2026/08/24",
-  "updated_ts": "2026-08-24T15:34:41.286193+08:00",
+  "updated": "2026/08/25",
+  "updated_ts": "2026-08-25T01:58:01.470521+08:00",
   "vusion": {
     "current": 131.2,
     "prev": 131.7,
@@ -38,9 +38,9 @@
     "is_live": true
   },
   "pricer": {
-    "current": 4.3,
+    "current": 4.29,
     "prev": 4.25,
-    "chg": 1.18,
+    "chg": 0.94,
     "currency": "SEK",
     "h52": 9.92,
     "l52": 2.91,
