@@ -23,12 +23,12 @@
     "ytd": -41.5,
     "is_live": true
   },
-  "updated": "2026/10/08",
-  "updated_ts": "2026-10-08T21:48:36.245964+08:00",
+  "updated": "2026/10/09",
+  "updated_ts": "2026-10-09T06:18:29.216727+08:00",
   "vusion": {
-    "current": 121.4,
-    "prev": 123.8,
-    "chg": -1.94,
+    "current": 123.8,
+    "prev": 127.5,
+    "chg": -2.9,
     "currency": "EUR",
     "h52": 278.0,
     "l52": 108.5,
@@ -38,9 +38,9 @@
     "is_live": true
   },
   "pricer": {
-    "current": 3.975,
-    "prev": 3.9,
-    "chg": 1.92,
+    "current": 3.9,
+    "prev": 4.03,
+    "chg": -3.23,
     "currency": "SEK",
     "h52": 9.92,
     "l52": 2.91,
